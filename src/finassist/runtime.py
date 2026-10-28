@@ -8,6 +8,8 @@ from finassist.vectorstore import FilingStore, get_embeddings
 
 
 def build_app(settings: Settings | None = None):
+    """Build the full graph app. Constructs heavy objects (embedding model, Chroma, LLM client) on
+    every call; long-lived callers must build once and reuse the returned app."""
     s = settings or get_settings()
     store = FilingStore(s.chroma_dir, get_embeddings(s))
     return build_graph(make_deps(s, store, build_llm(s)))

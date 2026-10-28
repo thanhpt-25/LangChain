@@ -50,18 +50,56 @@ def test_extractor_live(live_deps):
     assert out.eps == 7.46
 
 
-@pytest.mark.skipif(os.getenv("RUN_INTEGRATION") != "1", reason="integration")
-def test_generate_live_cites_retrieved_chunk(tmp_path):
-    from finassist.chains import build_llm, make_deps
+@pytest.fixture(scope="module")
+def live_store(tmp_path_factory):
     from finassist.ingest import load_filing
-    from finassist.postprocess import MARKER_RE
     from finassist.vectorstore import FilingStore, get_embeddings
     s = get_settings()
-    store = FilingStore(tmp_path / "chroma", get_embeddings(s))
-    store.upsert(load_filing("AAPL", s.raw_dir))
-    deps = make_deps(s, store, build_llm(s))
+    store = FilingStore(tmp_path_factory.mktemp("chroma"), get_embeddings(s))
+    for t in ("AAPL", "NVDA"):
+        store.upsert(load_filing(t, s.raw_dir))
+    return store
+
+
+@pytest.mark.skipif(os.getenv("RUN_INTEGRATION") != "1", reason="integration")
+def test_generate_live_cites_retrieved_chunk(live_store):
+    from finassist.chains import build_llm, make_deps
+    from finassist.postprocess import MARKER_RE
+    s = get_settings()
+    deps = make_deps(s, live_store, build_llm(s))
     q = "What were Apple's total net sales last fiscal year?"
     chunks = deps.retrieve(q, ["AAPL"])[:3]
     ans = deps.generate(q, chunks, [])
     ids = {c.chunk_id for c in chunks}
-    assert set(MARKER_RE.findall(ans)) & ids
+    found = set(MARKER_RE.findall(ans))
+    assert found and found <= ids
+
+
+def _run_graph(live_store, q):
+    from finassist.chains import build_llm, make_deps
+    from finassist.graph import build_graph
+    s = get_settings()
+    return build_graph(make_deps(s, live_store, build_llm(s))).invoke({"question": q})
+
+
+@pytest.mark.skipif(os.getenv("RUN_INTEGRATION") != "1", reason="integration")
+def test_graph_live_aapl_revenue(live_store):
+    st = _run_graph(live_store, "What were Apple's total net sales in its most recent fiscal year?")
+    out = st["output"]
+    print("CHUNKS", [(c.chunk_id, c.score) for c in st["retrieved_chunks"]], "\nANSWER", st["answer"], "\nOUT", out)
+    assert out.intent == "filing"
+    assert out.citations
+    assert out.revenue is not None and out.revenue.value == 416161
+    assert out.ticker == "AAPL"
+    assert out.fiscal_year == 2025
+
+
+@pytest.mark.skipif(os.getenv("RUN_INTEGRATION") != "1", reason="integration")
+def test_graph_live_nvda_eps(live_store):
+    st = _run_graph(live_store, "What was NVIDIA's diluted earnings per share in its most recent fiscal year?")
+    out = st["output"]
+    print("CHUNKS", [(c.chunk_id, c.score) for c in st["retrieved_chunks"]], "\nANSWER", st["answer"], "\nOUT", out)
+    assert out.intent == "filing"
+    assert out.citations
+    assert out.ticker == "NVDA"
+    assert out.eps == 4.90
