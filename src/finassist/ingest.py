@@ -47,7 +47,12 @@ def split_items(text: str) -> dict[str, str]:
     best: dict[str, str] = {}
     for i, m in enumerate(matches):
         item = m.group(1).upper()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        if i and matches[i - 1].group(1).upper() == item:
+            continue  # running page header repeating the same Item: same section continues
+        j = i + 1
+        while j < len(matches) and matches[j].group(1).upper() == item:
+            j += 1
+        end = matches[j].start() if j < len(matches) else len(text)
         body = text[m.end():end].strip()
         if item in KEEP_ITEMS and len(body) > len(best.get(item, "")):
             best[item] = body

@@ -68,3 +68,22 @@ def test_real_headings_same_line_and_next_line_recognised():
     nxt = split_items("Item 1A.\nRisk Factors\n" + "Risk body. " * 20)
     assert "Risk body" in same["1A"]
     assert "Risk body" in nxt["1A"]
+
+
+RUNNING_HEADER = (
+    "Item 1.  Business\n" + "We make devices. " * 40 + "\n"
+    "Item 7.  Management's Discussion\nPAGE_ONE_TEXT " + "Revenue grew. " * 30 + "\n"
+    "\n43\n\nPART II\nItem 7\n\nPAGE_TWO_TEXT " + "Margins moved. " * 30 + "\n"
+    "\n44\n\nPART II\nItem 7\n\nPAGE_THREE_TEXT " + "Cash flow rose. " * 30 + "\n"
+    "Item 8.  Financial Statements\n" + "Total net sales 416,161. " * 30 + "\n"
+)
+
+
+def test_repeated_running_page_header_does_not_truncate_section():
+    """MSFT repeats 'PART II / Item N' at the top of every page; the section must span all pages."""
+    items = split_items(RUNNING_HEADER)
+    assert "PAGE_ONE_TEXT" in items["7"]
+    assert "PAGE_TWO_TEXT" in items["7"]
+    assert "PAGE_THREE_TEXT" in items["7"]
+    assert "Total net sales" not in items["7"]
+    assert "Total net sales" in items["8"]
