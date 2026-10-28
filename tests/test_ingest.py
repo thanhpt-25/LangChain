@@ -35,3 +35,36 @@ def test_html_to_text_drops_script_and_hidden_xbrl():
     text = html_to_text(html)
     assert "HIDDEN" not in text and "x=1" not in text
     assert "Hello world" in text
+
+
+XREF = (
+    "Item 1.  Business\n" + "We make devices. " * 40 + "\n"
+    "Item 1A.  Risk Factors\n"
+    "Early risk text. " * 20 + "\n"
+    "As discussed in Part I,\nItem 1A\nof this Form 10-K. More risk. SENTINEL_AFTER_1A\n"
+    "See also\nItem 8\nof this report\nSENTINEL_AFTER_8REF " + "Supply chain risk matters. " * 40 + "\n"
+    "Item 1B.  Unresolved Staff Comments\nNone\n"
+    "Item 8.  Financial Statements\n" + "Total net sales 416,161. " * 30 + "\n"
+)
+
+
+def test_cross_references_are_not_headings():
+    items = split_items(XREF)
+    assert "SENTINEL_AFTER_1A" in items["1A"]
+    assert "SENTINEL_AFTER_8REF" in items["1A"]      # stays in the section it was in
+    assert "Total net sales" not in items["1A"]
+    assert "Total net sales" in items["8"]
+    assert "SENTINEL_AFTER_8REF" not in items["8"]
+
+
+def test_inline_cross_reference_with_lowercase_remainder_rejected():
+    text = XREF.replace("Item 8\nof this report", "Item 8 of this report")
+    items = split_items(text)
+    assert "SENTINEL_AFTER_8REF" in items["1A"]
+
+
+def test_real_headings_same_line_and_next_line_recognised():
+    same = split_items("Item 1A.  Risk Factors\n" + "Risk body. " * 20)
+    nxt = split_items("Item 1A.\nRisk Factors\n" + "Risk body. " * 20)
+    assert "Risk body" in same["1A"]
+    assert "Risk body" in nxt["1A"]

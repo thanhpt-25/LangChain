@@ -27,10 +27,23 @@ def html_to_text(html: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
 
 
+def _is_heading(text: str, m: re.Match) -> bool:
+    """Conservative check that rejects in-prose cross-references ("see Item 1A of this Form")."""
+    eol = text.find("\n", m.end())
+    eol = len(text) if eol == -1 else eol
+    rest = text[m.end():eol].strip()
+    if len(rest) > 120:
+        return False
+    if rest:
+        return not rest[0].islower()
+    nxt = next((ln.strip() for ln in text[eol:].splitlines() if ln.strip()), "")
+    return not (nxt and nxt[0].islower())
+
+
 def split_items(text: str) -> dict[str, str]:
     """Return {item: body}. 10-Ks list every Item twice (table of contents + body);
     keeping the longest section per item selects the body."""
-    matches = list(ITEM_RE.finditer(text))
+    matches = [m for m in ITEM_RE.finditer(text) if _is_heading(text, m)]
     best: dict[str, str] = {}
     for i, m in enumerate(matches):
         item = m.group(1).upper()
