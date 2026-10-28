@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import json
 import re
+import warnings
 from pathlib import Path
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from finassist.schemas import Chunk
 
-KEEP_ITEMS = {"1", "1A", "7", "7A", "8"}
+KEEP_ITEMS = {"1", "1A", "7", "7A", "8", "15"}
 # \b after the group stops "Item 10" from matching as Item "1".
 ITEM_RE = re.compile(
     r"^[ \t]*item[ \t]+(1a|1b|1c|2|3|4|5|6|7a|7|8|9a|9b|9c|9|10|11|12|13|14|15|16|1)\b[ \t]*[\.\:\-–—]?",
@@ -19,7 +20,9 @@ _splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
 
 
 def html_to_text(html: str) -> str:
-    soup = BeautifulSoup(html, "lxml")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", XMLParsedAsHTMLWarning)  # inline-XBRL docs are XHTML
+        soup = BeautifulSoup(html, "lxml")
     for tag in soup.find_all(["script", "style", "ix:header"]):
         tag.decompose()
     text = soup.get_text("\n").replace("\xa0", " ")

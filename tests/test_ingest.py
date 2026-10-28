@@ -87,3 +87,22 @@ def test_repeated_running_page_header_does_not_truncate_section():
     assert "PAGE_THREE_TEXT" in items["7"]
     assert "Total net sales" not in items["7"]
     assert "Total net sales" in items["8"]
+
+
+ITEM15 = (
+    "Item 1.  Business\n" + "We make chips. " * 40 + "\n"
+    "Item 8.  Financial Statements\nSee Item 15 for the statements.\n"
+    "Item 9.  Changes in Accountants\nNone\n"
+    "Item 15.  Exhibits and Financial Statement Schedules\n"
+    + "Net income 4,368. Diluted EPS 1.76. " * 30 + "\n"
+    "Item 16.  Form 10-K Summary\nNone\n"
+)
+
+
+def test_item_15_is_kept_and_chunked():
+    items = split_items(ITEM15)
+    assert "Net income 4,368" in items["15"]
+    assert "Form 10-K Summary" not in items["15"]
+    chunks = chunk_filing("NVDA", 2026, ITEM15, "http://x")
+    assert {c.item for c in chunks} >= {"1", "15"}
+    assert any(c.chunk_id == "NVDA-2026-15-000" and c.item == "15" for c in chunks)
