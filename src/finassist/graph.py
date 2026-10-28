@@ -6,7 +6,7 @@ from typing import Callable, TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from finassist.config import TICKERS
-from finassist.postprocess import MARKER_RE, extract_citations, ground_numbers
+from finassist.postprocess import extract_citations, ground_numbers
 from finassist.schemas import Chunk, FinanceAnswer, Intent, IntentResult, PriceInfo
 from finassist.tools import PriceUnavailable
 
@@ -17,6 +17,17 @@ REFUSAL_TEXT = (
 )
 INSUFFICIENT_TEXT = "Không đủ thông tin trong 10-K để trả lời. / Not enough information in the 10-K filings."
 PRICE_UNAVAILABLE_TEXT = "Dữ liệu giá hiện không khả dụng. / Price data is currently unavailable."
+
+
+def price_unavailable_note(missing: list[str]) -> str:
+    return f"\n\n[Giá hiện không khả dụng / price unavailable: {', '.join(missing)}]"
+
+
+def _missing_prices(state: "GraphState") -> list[str]:
+    if state["intent"] not in ("price", "both"):
+        return []
+    have = {p.ticker for p in state["price_data"]}
+    return [t for t in state["tickers"] if t not in have]
 
 
 class GraphState(TypedDict, total=False):
@@ -46,9 +57,9 @@ def _join(*parts: str | None) -> str | None:
 def build_graph(deps: Deps):
     def classify_intent(state: GraphState) -> GraphState:
         res = deps.classify(state["question"])
-        tickers = [t for t in dict.fromkeys(res.tickers) if t in TICKERS]
+        tickers = [t for t in dict.fromkeys(x.strip().upper() for x in res.tickers) if t in TICKERS]
         intent = res.intent if (tickers or res.intent == "out_of_scope") else "out_of_scope"
-        return {"intent": intent, "tickers": tickers}
+        return {"intent": intent, "tickers": tickers, "retrieved_chunks": [], "price_data": [], "error": None}
 
     def route(state: GraphState) -> str:
         return {"price": "price_tool", "both": "price_tool", "filing": "retrieve", "out_of_scope": "refuse"}[state["intent"]]
@@ -70,31 +81,33 @@ def build_graph(deps: Deps):
 
     def generate_answer(state: GraphState) -> GraphState:
         intent = state["intent"]
-        chunks = state.get("retrieved_chunks", [])
-        prices = state.get("price_data", [])
+        chunks = state["retrieved_chunks"]
+        prices = state["price_data"]
         needs_filing = intent in ("filing", "both")
+        missing = _missing_prices(state)
+        note = price_unavailable_note(missing) if missing else ""
         if needs_filing and not chunks:
-            return {"answer": INSUFFICIENT_TEXT}
+            return {"answer": INSUFFICIENT_TEXT + note}
         if intent == "price" and not prices:
             return {"answer": PRICE_UNAVAILABLE_TEXT}
-        answer = ""
         for _ in range(2):
             answer = deps.generate(state["question"], chunks, prices)
-            if not needs_filing or MARKER_RE.search(answer):
-                return {"answer": answer}
-        return {"answer": answer, "error": _join(state.get("error"), "missing_citation")}
+            if not needs_filing or extract_citations(answer, chunks):
+                return {"answer": answer + note}
+        return {"answer": INSUFFICIENT_TEXT + note, "error": _join(state["error"], "missing_citation")}
 
     def format_output(state: GraphState) -> GraphState:
         intent, answer = state["intent"], state["answer"]
-        chunks = state.get("retrieved_chunks", [])
-        prices = state.get("price_data", [])
-        if answer in (INSUFFICIENT_TEXT, PRICE_UNAVAILABLE_TEXT):
-            return {"output": FinanceAnswer(intent=intent, answer=answer)}
+        chunks = state["retrieved_chunks"]
+        prices = state["price_data"]
+        tool_prices = {"stock_price": prices[0] if len(prices) == 1 else None, "stock_prices": list(prices)}
+        if answer.startswith((INSUFFICIENT_TEXT, PRICE_UNAVAILABLE_TEXT)):
+            return {"output": FinanceAnswer(intent=intent, answer=answer, **tool_prices)}
         out = deps.structure(state["question"], answer, chunks, prices, intent)
         out = ground_numbers(out, chunks)
         out = out.model_copy(update={
             "citations": extract_citations(answer, chunks) if intent in ("filing", "both") else [],
-            "stock_price": prices[0] if len(prices) == 1 else out.stock_price,
+            **tool_prices,
         })
         return {"output": out}
 

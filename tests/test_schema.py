@@ -21,3 +21,8 @@ def test_rejects_unknown_intent():
 def test_defaults_are_null_safe():
     a = FinanceAnswer(intent="out_of_scope", answer="no")
     assert a.revenue is None and a.risk_factors == [] and a.citations == []
+
+
+def test_stock_prices_defaults_to_empty_list():
+    a = FinanceAnswer(intent="price", answer="x")
+    assert a.stock_prices == [] and a.stock_price is None

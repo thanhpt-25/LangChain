@@ -46,6 +46,7 @@ class FinanceAnswer(BaseModel):
     eps: float | None = None
     risk_factors: list[str] = Field(default_factory=list)
     stock_price: PriceInfo | None = None
+    stock_prices: list[PriceInfo] = Field(default_factory=list)
     answer: str
     citations: list[Citation] = Field(default_factory=list)
     intent: Intent
