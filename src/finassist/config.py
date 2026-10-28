@@ -31,7 +31,7 @@ class Settings:
 
 
 def get_settings() -> Settings:
-    load_dotenv(ROOT / ".env")
+    load_dotenv(ROOT / ".env", override=True)
     data = ROOT / "data"
     return Settings(
         base_url=normalize_base_url(os.getenv("ANTHROPIC_BASE_URL", "https://api.anthropic.com")),
