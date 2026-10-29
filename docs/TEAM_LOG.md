@@ -50,7 +50,7 @@ Lấy từ `git log --format='%h %ad %an %s' --date=short`. Nhánh `feat/finance
 - Kiểm tra dữ liệu thật sớm có ích. NVDA đặt financial statements ở Item 15 và Item 8 chỉ là stub, nên phải thêm Item 15 (`676e1bf`). MSFT lặp running header "Item 8", nên phải gộp (`b24e307`).
 - Cho LLM sinh citation hoặc con số rồi tin ngay là rủi ro. Phần đó được chuyển sang mã tất định (`postprocess.py`), vừa kiểm được vừa test được.
 - Judge dùng cùng model với app, nên faithfulness 0.939 cần đọc cùng với Caveats.
-- Đo trước khi tin một cải tiến. Đợt truy hồi thử bốn thứ (reranker MiniLM, reranker bge, hybrid BM25, chunk theo hàng bảng) với ngưỡng đặt trước, và chỉ reranker MiniLM được giữ. Kết quả vẫn dưới mục tiêu (any@5 64% so với 70%, all@5 36% so với 40%), và RAGAS cho chênh lệch nằm trong nhiễu giữa các lần chạy (0.02 đến 0.03), nên mức cải thiện nên đọc là nhỏ. Việc chạy lại baseline để đo nhiễu và việc ghi cả những thí nghiệm bị bỏ là phần giúp kết luận này đáng tin.
+- Đo trước khi tin một cải tiến. Đợt truy hồi thử bốn thứ (reranker MiniLM, reranker bge, hybrid BM25, chunk theo hàng bảng) với ngưỡng đặt trước, và chỉ reranker MiniLM được giữ. Kết quả vẫn dưới mục tiêu (any@5 64% so với 70%, all@5 36% so với 40%), và RAGAS cho thấy faithfulness và recall chênh lệch trong khoảng nhiễu giữa các lần chạy (0.02 đến 0.03), còn answer relevancy tăng 0.08 đến 0.10, lớn hơn nhiễu đó, chủ yếu nhờ ít câu từ chối hơn, nên mức cải thiện nên đọc là nhỏ. Việc chạy lại baseline để đo nhiễu và việc ghi cả những thí nghiệm bị bỏ là phần giúp kết luận này đáng tin.
 
 ## Bản sửa ưu tiên đã commit
 

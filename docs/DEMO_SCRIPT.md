@@ -37,13 +37,14 @@ Ghi chú khi demo:
 | LangSmith không mở được | Dùng `docs/evidence/trace_tree.md` (text rendering của 2 trace thật). Không có ảnh chụp màn hình trong repo |
 | Streamlit không lên | Dùng CLI `finassist ask` hoặc `--replay` |
 | Hỏi số liệu khác với kỳ vọng | Chỉ vào citation và `reports/retrieval_experiments.md`: lỗi retrieval đã biết (9 trên 25 câu vẫn trượt top-5); thường hệ thống hedge, nhưng ở baseline q10/q20 đã trả một con số sai có nguồn (139,297), nên hãy nói thẳng điều này |
+| Không có mạng (model reranker đã có trong cache) | Đặt `HF_HUB_OFFLINE=1` cùng với `FINASSIST_PRICE_OFFLINE=1`. Khi mạng tắt mà thiếu biến này, việc nạp model mất khoảng 29 giây; có biến này chỉ khoảng 6 giây (đo một lần trên một máy, nên chỉ là số tham khảo). Nếu model reranker chưa có trong cache, ứng dụng ghi một cảnh báo và dùng top-5 vector thuần. Câu filing đầu tiên, khi không có cache lẫn mạng, vẫn có thể phải chờ lần tải model hết thời gian, đo được khoảng 50 giây một lần |
 | Câu filing đầu tiên rất chậm | Model reranker đang được tải và nạp. Chờ, hoặc chuyển sang Replay; lần sau sẽ nhanh |
 
 Tạo lại bản ghi: `uv run finassist ask "..." --record runs/demo.json` (cần router).
 
 Câu hỏi live: dùng câu tiếng Anh làm chính (ví dụ "What is NVIDIA's current stock price and how do export controls threaten it?"), vì embedding `bge-small-en-v1.5` chỉ dành cho tiếng Anh. Tiếng Việt chỉ là phần thưởng tùy chọn: câu rủi ro xuất khẩu của NVIDIA đã được giảm thiểu bằng `search_query` tiếng Anh do classifier viết lại, nhưng câu về bảng số liệu (ví dụ "Lợi nhuận ròng của Microsoft là bao nhiêu?") vẫn hay retrieve hụt.
 
-Lưu ý: chạy `python -m eval.run_ragas` không kèm `--tag` ghi đè `reports/ragas_baseline.{json,md}`, kể cả các ghi chú viết tay ("TO ANALYZE", Caveats, Worst cases). Hãy luôn truyền `--tag` mới (ví dụ `--tag thu_nghiem`). Chạy lại mất khoảng 14 đến 19 phút. Không cần chạy lại trước giờ demo.
+Lưu ý: lệnh là `uv run python -m eval.run_ragas --tag <tên>` và `--tag` là bắt buộc. Tag mặc định `baseline` đã bị bỏ, vì nó từng ghi đè `reports/ragas_baseline.{json,md}`, kể cả các ghi chú viết tay ("TO ANALYZE", Caveats, Worst cases). Hãy dùng một tên mới (ví dụ `--tag thu_nghiem`). Chạy lại mất khoảng 14 đến 19 phút. Không cần chạy lại trước giờ demo.
 
 ## 4. Danh sách kiểm tra an toàn
 

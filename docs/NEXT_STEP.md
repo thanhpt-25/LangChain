@@ -30,7 +30,7 @@ Chín câu còn trượt ở top-5 trong cấu hình cuối, kèm hạng của t
 
 ## Các hướng còn lại
 
-Mỗi hướng dưới đây bám vào một quan sát cụ thể. Cách đo luôn giống nhau: chạy lại `uv run python -m eval.retrieval_eval --label "..."` rồi một lần RAGAS đầy đủ (`uv run python -m eval.run_ragas --tag ...`), và so với bảng ở trên. Khi so RAGAS, chênh lệch dưới 0,03 ở faithfulness hoặc recall nằm trong nhiễu đã đo, nên cần chạy mỗi cấu hình ít nhất hai lần.
+Mỗi hướng dưới đây bám vào một quan sát cụ thể. Cách đo luôn giống nhau: chạy lại `uv run python -m eval.retrieval_eval --label "..."` rồi một lần RAGAS đầy đủ (`uv run python -m eval.run_ragas --tag <tên>`), và so với bảng ở trên. Khi so RAGAS, chênh lệch dưới 0,03 ở faithfulness hoặc recall nằm trong nhiễu đã đo, nên cần chạy mỗi cấu hình ít nhất hai lần.
 
 | Hướng | Quan sát dẫn tới nó | Mục tiêu đo được |
 |---|---|---|

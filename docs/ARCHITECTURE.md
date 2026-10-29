@@ -361,6 +361,7 @@ Phép kiểm này trả lời câu hỏi "con số có nằm trong context khôn
 
 | Sự cố | Hành vi | Nơi xử lý |
 |---|---|---|
+| Không nạp được model reranker (chưa có trong cache và không có mạng, hoặc cache hỏng) | Ghi cảnh báo `reranker ... unavailable`, retriever dùng top-5 vector thuần. Retriever được cache nên các câu sau không thử lại. | `retrieval.make_retriever` |
 | Router LLM không phản hồi | Lỗi nổi lên khỏi đồ thị. CLI in một dòng `error:` kèm gợi ý dùng `--replay`; Streamlit hiện `st.error`. | `cli.py`, `streamlit_app.py` |
 | yfinance lỗi hoặc không có mạng | Dùng giá trong cache, đánh dấu `stale=true` | `tools.get_stock_price` |
 | Không có cả mạng lẫn cache | Ném `PriceUnavailable`. Câu `price` trả `PRICE_UNAVAILABLE_TEXT`; câu `both` vẫn trả phần filing kèm ghi chú thiếu giá. | `price_tool`, `generate_answer` |
@@ -466,7 +467,7 @@ Bộ đo đọc 25 câu có `evidence` trong `eval/golden_set.json`, in any@K, a
 
 `runtime.ask` gọi đồ thị với `run_name=finassist`, tag mặc định `demo` và metadata `app_version`. Khi các biến `LANGSMITH_*` có trong `.env`, LangChain tự gửi trace gồm từng node, từng lời gọi LLM, đầu vào và đầu ra của `price_tool` và danh sách chunk của `retrieve`. Lệnh `uv run python scripts/trace_link.py` in URL của trace mới nhất.
 
-`eval/run_ragas.py` dùng cùng `build_app` và gắn tag `eval`, nên các lần chạy đánh giá tách được khỏi các lần demo trong LangSmith.
+`eval/run_ragas.py` (chạy bằng `uv run python -m eval.run_ragas --tag <tên>`, `--tag` là bắt buộc và không còn tag mặc định) dùng cùng `build_app` và gắn tag `eval`, nên các lần chạy đánh giá tách được khỏi các lần demo trong LangSmith.
 
 ## 10. Tài liệu liên quan
 

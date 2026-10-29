@@ -97,7 +97,7 @@ RAGAS đầy đủ chấm 25 câu bằng bốn metric và kiểm tra intent trê
 uv run python -m eval.run_ragas --tag retrieval_v2   # ghi reports/ragas_retrieval_v2.{json,md}
 ```
 
-Lệnh này mất khoảng 15 đến 19 phút. Nếu bỏ `--tag`, tag mặc định là `baseline` và lệnh ghi đè `reports/ragas_baseline.{json,md}`, kể cả các ghi chú viết tay, nên hãy luôn truyền một tag mới. Các báo cáo hiện có: `reports/ragas_baseline.md` (vector thuần, đã chú giải), `reports/ragas_baseline_rerun.md` (chạy lại vector thuần, để đo nhiễu), `reports/ragas_retrieval_v2.md` (cấu hình hiện tại).
+Lệnh này mất khoảng 15 đến 19 phút. `--tag <tên>` là bắt buộc. Tag mặc định `baseline` đã bị bỏ, vì nó từng ghi đè `reports/ragas_baseline.{json,md}` cùng các ghi chú viết tay; hãy dùng một tên mới. Các báo cáo hiện có: `reports/ragas_baseline.md` (vector thuần, đã chú giải), `reports/ragas_baseline_rerun.md` (chạy lại vector thuần, để đo nhiễu), `reports/ragas_retrieval_v2.md` (cấu hình hiện tại).
 
 Điểm RAGAS (faithfulness, context precision, context recall, answer relevancy):
 
