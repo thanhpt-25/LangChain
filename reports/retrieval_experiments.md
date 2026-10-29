@@ -295,3 +295,85 @@ Bảng cũng có bản viết lại không rỗng ở 7 câu khác (q07, q12, q1
 Khoảng cách tới mục tiêu ở spec mục 6 sau thay đổi: any@5 72% so với 70%, vượt 2 điểm (18 trên 25 là 72%, mục tiêu cần 17,5 câu); all@5 40% so với 40%, vừa đúng (10 trên 25). Hai mục tiêu chất lượng đạt, nhưng chỉ vừa sát ngưỡng, và all@5 sẽ rơi xuống 36% nếu mất một câu.
 
 Mức tin cậy. Mỗi câu combined chiếm 20 điểm trong nhóm combined và 4 điểm trong số liệu chung. Quyết định này dựa trên 5 câu, trong đó 2 câu đổi hạng đủ để đổi any@5 (q24 và q25) và 1 câu đổi all@5 (q24). Đó là mẫu mỏng: một câu lệch là 20 điểm ở combined và 4 điểm ở overall, và việc vượt mục tiêu any@5 là nhờ đúng hai câu đó. Bản viết lại do LLM tạo cũng có thể khác ở lần chạy khác; bảng đã lưu giúp phát lại đúng số liệu này nhưng không chứng minh rằng bộ phân loại sẽ viết lại giống thế mỗi lần. Cần bộ đo lớn hơn 25 câu, nhiều câu both hơn, trước khi coi kết quả là ổn định.
+
+
+## both-rewrite: so sánh RAGAS đầy đủ
+
+Chạy hai lần cấu hình mới (`--tag both_rewrite_1` và `--tag both_rewrite_2`, 25 câu có điểm RAGAS, bản viết lại do bộ phân loại tạo ra cho câu both) và so với hai lần của cấu hình trước (`ragas_retrieval_v2`, `ragas_demo_check`). Cùng một mô hình làm cả ứng dụng lẫn giám khảo nên faithfulness có thể cao hơn thực tế. Báo cáo từng lần: `reports/ragas_both_rewrite_1.md` và `reports/ragas_both_rewrite_2.md`.
+
+### Số liệu chung
+
+| chỉ số | retrieval_v2 | demo_check | both_rewrite_1 | both_rewrite_2 |
+|---|---|---|---|---|
+| faithfulness | 0.939 | 0.933 | 0.952 | 0.929 |
+| context precision | 0.342 | 0.342 | 0.377 | 0.372 |
+| context recall | 0.400 | 0.413 | 0.420 | 0.460 |
+| answer relevancy | 0.766 | 0.770 | 0.772 | 0.799 |
+| intent accuracy (30 câu) | 30/30 | 30/30 | 30/30 | 30/30 |
+| numeric sanity | 7/10 | 7/10 | 7/10 | 7/10 |
+| thời gian chạy (giây) | 1134 | 971 | 836 | 1047 |
+
+Numeric sanity trượt đúng ba câu ở cả bốn lần: q04, q05, q10, đều là câu numeric không dùng bản viết lại. Thời gian chạy phụ thuộc tải của router (bốn lần nằm giữa 836 và 1134 giây, khoảng cách giữa hai lần cùng cấu hình là 163 và 211 giây), nên không đọc ra thành tác dụng của thay đổi.
+
+### Theo nhóm
+
+| nhóm | chỉ số | retrieval_v2 | demo_check | both_rewrite_1 | both_rewrite_2 |
+|---|---|---|---|---|---|
+| combined | faithfulness | 0.922 | 0.978 | 0.983 | 0.963 |
+| combined | precision | 0.107 | 0.107 | 0.282 | 0.257 |
+| combined | recall | 0.267 | 0.200 | 0.333 | 0.533 |
+| combined | relevancy | 0.768 | 0.772 | 0.769 | 0.938 |
+| numeric | faithfulness | 0.911 | 0.878 | 0.909 | 0.899 |
+| numeric | precision | 0.409 | 0.409 | 0.409 | 0.409 |
+| numeric | recall | 0.600 | 0.650 | 0.600 | 0.600 |
+| numeric | relevancy | 0.609 | 0.603 | 0.609 | 0.616 |
+| risk | faithfulness | 0.977 | 0.966 | 0.980 | 0.941 |
+| risk | precision | 0.392 | 0.392 | 0.392 | 0.392 |
+| risk | recall | 0.267 | 0.283 | 0.283 | 0.283 |
+| risk | relevancy | 0.921 | 0.937 | 0.937 | 0.914 |
+
+Combined, trung bình hai lần cũ so với hai lần mới: precision 0.107 và 0.270, recall 0.233 và 0.433, faithfulness 0.950 và 0.973, relevancy 0.770 và 0.853.
+
+### Nhiễu giữa các lần chạy
+
+Hai lần chạy cấu hình cũ khác nhau 0.006 ở faithfulness, 0.000 ở precision, 0.013 ở recall, 0.005 ở relevancy (đều dưới 0.02). Hai lần chạy cấu hình mới khác nhau 0.023 ở faithfulness, 0.005 ở precision, 0.040 ở recall, 0.027 ở relevancy. Vậy nhiễu của cấu hình mới lớn hơn mức 0.02 đo được ở cấu hình cũ, và các chênh lệch chung dưới đây phải so với mức này, không với 0.02. Ở nhóm combined nhiễu lớn hơn nhiều vì chỉ có 5 câu: recall của hai lần mới là 0.333 và 0.533, relevancy là 0.769 và 0.938.
+
+Với các chênh lệch chung giữa trung bình cũ và trung bình mới: faithfulness +0.004 (0.936 lên 0.940), nằm trong nhiễu. Recall +0.032 (0.407 lên 0.440), nằm trong nhiễu của hai lần mới (0.040). Relevancy +0.019 (0.768 lên 0.786), nằm trong nhiễu. Precision +0.032 (0.342 lên 0.374) lớn hơn nhiễu hai bên (0.000 và 0.005), nên là chênh lệch thật; nó đến từ q21, q24, q25 như bên dưới.
+
+### q21 đến q25 từng câu
+
+Điểm theo thứ tự retrieval_v2, demo_check, rewrite_1, rewrite_2.
+
+| câu | faithfulness | precision | recall | relevancy |
+|---|---|---|---|---|
+| q21 | 0.78 / 1.00 / 1.00 / 1.00 | 0.20 / 0.20 / 0.59 / 0.59 | 0.50 / 0.50 / 0.50 / 1.00 | 0.96 / 1.00 / 0.99 / 0.92 |
+| q22 | 0.94 / 1.00 / 0.92 / 0.92 | 0.00 / 0.00 / 0.00 / 0.00 | 0.00 / 0.00 / 0.33 / 0.33 | 0.94 / 0.93 / 0.00 / 0.98 |
+| q23 | 1.00 / 1.00 / 1.00 / 1.00 | 0.33 / 0.33 / 0.33 / 0.33 | 0.00 / 0.00 / 0.00 / 0.00 | 0.99 / 0.99 / 0.97 / 0.94 |
+| q24 | 0.89 / 0.94 / 1.00 / 0.90 | 0.00 / 0.00 / 0.24 / 0.11 | 0.50 / 0.50 / 0.50 / 0.67 | 0.00 / 0.00 / 0.95 / 0.94 |
+| q25 | 1.00 / 0.95 / 1.00 / 1.00 | 0.00 / 0.00 / 0.25 / 0.25 | 0.33 / 0.00 / 0.33 / 0.67 | 0.96 / 0.94 / 0.93 / 0.91 |
+
+Chunk truy hồi và câu trả lời, kiểm bằng văn bản chunk của `load_filing` và nhóm bằng chứng trong `eval/golden_set.json`.
+
+- q21: bằng chứng (416,161 và Total net sales) có trong top-5 ở cả bốn lần. Cấu hình cũ chỉ có AAPL-2025-8-023; cấu hình mới có ba chunk (8-023, 7-006, 7-005), nên precision từ 0.20 lên 0.59. Cả bốn câu trả lời nêu 416,161. Faithfulness 0.78 của retrieval_v2 là câu trả lời thêm suy đoán FY2026 đã kết thúc, và không lặp lại ở ba lần sau. Recall 1.0 ở lần 2 so với 0.5 ở lần 1 với cùng chunk là biến thiên của giám khảo.
+- q22: không lần nào có chunk bằng chứng nào (barriers to entry, hyperscalers) trong top-5, cả cũ lẫn mới; top-5 mới là MSFT-2026-1-068, 15-013, 1-021, 15-014, 1A-097. Cả bốn câu trả lời nêu P/E từ công cụ và nói bộ ngữ cảnh không xếp hạng rủi ro. Recall lên 0.33 ở cả hai lần mới, giám khảo có thể đã tính một phần từ các chunk mới, nhưng bằng chứng nêu trong golden set vẫn vắng. Relevancy 0.00 ở lần 1 và 0.98 ở lần 2 với cùng chunk và câu trả lời gần như giống nhau: RAGAS gán nhãn câu trả lời là không dứt khoát ở một lần, đó là nhiễu.
+- q23: không đổi. NVDA-2026-15-018 (215,938) nằm trong top-5 ở cả bốn lần và cả bốn câu trả lời nêu 215,938. Recall 0.0 vì chunk vàng NVDA-2026-7-012 chưa bao giờ được lấy về, như mọi lần trước.
+- q24: nhóm Apple (AAPL-2025-8-023) vào top-10 ở cả hai lần mới, trước đó không có; nhóm Microsoft (331,839 và Total revenue) vẫn không có chunk khớp, nhưng MSFT-2026-7-020 mới vào top-10 và câu trả lời trích nó để nêu 331,839. Câu trả lời đổi từ "không so sánh được" (relevancy 0.00 ở cả hai lần cũ) sang nêu cả 416,161 và 331,839 rồi so sánh, relevancy 0.95 và 0.94. Đây là cải thiện thật vì chunk và câu trả lời đều khác.
+- q25: chunk NVDA-2026-1A-107 (disrupt our supply chain and distribution channels) vào top-5 ở cả hai lần mới, trước đó không có. Nhóm "unilateral worldwide controls" vẫn vắng. Câu trả lời có thêm phần nhu cầu ngoài Trung Quốc. Recall 0.33 và 0.67 so với 0.33 và 0.00 của cấu hình cũ: một phần là chunk mới, một phần là nhiễu (hai lần mới cách nhau 0.33).
+
+### Câu khác có điểm đổi trên 0.3
+
+So trung bình hai lần cũ với trung bình hai lần mới, chỉ q21 đến q25 vượt 0.3: q21 precision +0.39, q22 recall +0.33 và relevancy -0.44, q24 relevancy +0.94, q25 recall +0.33. Giải thích nằm ở phần trên: q21, q24 và q25 là thay đổi thật nhờ chunk mới trong top-5 hoặc top-10; q22 relevancy là nhiễu của RAGAS; q22 và q25 recall là một phần chunk mới, một phần nhiễu.
+
+Hai mươi câu còn lại có điểm thay đổi nhỏ hơn 0.3 (lớn nhất 0.25, là recall của q07 từ 0.25 xuống 0.00, do một lần cũ chấm 0.50 và ba lần còn lại chấm 0.00 với cùng chunk). Danh sách chunk truy hồi của q01 đến q20 trùng khít ở cả bốn lần, kể cả các câu bẫy intent, nên mọi chênh lệch ở đó là biến thiên của LLM và giám khảo, không phải tác dụng của bản viết lại. Lý giải từng câu nằm trong phần worst cases của hai báo cáo mới.
+
+### Đối chiếu tiêu chí mục 4.5 của spec
+
+Recall của nhóm combined cao hơn mức cao nhất của hai lần trước (0.267): đạt. Hai lần mới là 0.333 và 0.533, trung bình 0.433, cả hai đều trên 0.267 và trên ngưỡng có ý nghĩa 0.30. Lần 1 chỉ cao hơn 0.067, tức một câu lệch 0.33 có thể xoá chênh lệch này, và hai lần mới cách nhau 0.200, nên mức tăng chắc chắn chỉ là hướng, chưa phải độ lớn.
+
+Faithfulness chung không giảm quá 0.03: đạt. 0.952 và 0.929 so với 0.939 và 0.933; lần thấp nhất (0.929) thấp hơn lần cũ cao nhất 0.010. Trung bình tăng 0.004, trong nhiễu.
+
+Không câu nào trong q21 đến q25 mất bằng chứng đang có: đạt. q21 giữ 8-023 và thêm hai chunk, q23 giữ 15-018, q22 trước đó chưa có, q24 và q25 có thêm chunk bằng chứng.
+
+### Kết luận
+
+Ba tiêu chí của spec 4.5 đều đạt. Phần cải thiện chắc chắn nằm ở nhóm combined: precision từ 0.107 lên 0.26 đến 0.28 (cả hai lần cũ giống nhau, cả hai lần mới giống nhau), q24 từ không trả lời được sang nêu cả hai số liệu, q21 có ba chunk có số liệu thay vì một. Recall combined tăng nhưng nhiễu lớn, và q22 vẫn không có bằng chứng, q23 vẫn có recall 0.0 do chunk vàng không bao giờ được lấy về, nên không nên nói rằng recall combined đã đạt mức 0.43 như một số ổn định. Các nhóm numeric và risk không đổi về truy hồi và các chênh lệch điểm ở đó là nhiễu. Mẫu vẫn chỉ có 5 câu both trong 25 câu có điểm RAGAS; cần bộ đo lớn hơn trước khi coi con số là ổn định.
