@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import math
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,6 +10,9 @@ from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[2]
 TICKERS = ("AAPL", "MSFT", "NVDA")
+DEFAULT_PRICE_TIMEOUT = 8.0
+
+log = logging.getLogger(__name__)
 
 
 def normalize_base_url(url: str) -> str:
@@ -33,7 +38,20 @@ class Settings:
     candidates: int = 30
     embed_prefix: bool = False
     table_rows: bool = False
-    price_timeout: float = 8.0
+    price_timeout: float = DEFAULT_PRICE_TIMEOUT
+
+
+def _parse_price_timeout(raw: str) -> float:
+    """Seconds to wait per ticker. Invalid, non-finite or <= 0 values fall back to the default."""
+    try:
+        value = float(raw)
+    except ValueError:
+        value = math.nan
+    if not math.isfinite(value) or value <= 0:
+        log.warning("FINASSIST_PRICE_TIMEOUT=%r is not a positive finite number; using %gs",
+                    raw, DEFAULT_PRICE_TIMEOUT)
+        return DEFAULT_PRICE_TIMEOUT
+    return value
 
 
 def get_settings() -> Settings:
@@ -56,5 +74,5 @@ def get_settings() -> Settings:
         candidates=int(os.getenv("FINASSIST_CANDIDATES", "30")),
         embed_prefix=os.getenv("FINASSIST_EMBED_PREFIX", "0") == "1",
         table_rows=os.getenv("FINASSIST_TABLE_ROWS", "0") == "1",
-        price_timeout=float(os.getenv("FINASSIST_PRICE_TIMEOUT", "8")),
+        price_timeout=_parse_price_timeout(os.getenv("FINASSIST_PRICE_TIMEOUT", str(DEFAULT_PRICE_TIMEOUT))),
     )

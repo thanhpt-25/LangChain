@@ -162,3 +162,70 @@ def test_make_deps_retrieve_raises_for_empty_real_store(tmp_path):
     deps = make_deps(settings, store, NoLLM())
     with pytest.raises(EmptyStoreError, match="finassist ingest"):
         deps.retrieve("q", ["AAPL"])
+
+
+def _empty_store_deps(tmp_path, monkeypatch, llm):
+    from types import SimpleNamespace
+
+    from langchain_core.embeddings import DeterministicFakeEmbedding
+
+    from finassist.chains import make_deps
+    from finassist.vectorstore import FilingStore
+
+    def fake_price(ticker, cache_path, offline=False, timeout=None, **kw):
+        from finassist.schemas import PriceInfo
+        return PriceInfo(ticker=ticker, price=123.0, as_of="2026-10-28T00:00:00+00:00")
+
+    monkeypatch.setattr("finassist.chains.get_stock_price", fake_price)
+    store = FilingStore(tmp_path / "chroma", DeterministicFakeEmbedding(size=32))
+    settings = SimpleNamespace(cache_dir=tmp_path, price_offline=False, price_timeout=8.0, retrieval_mode="dense",
+                               reranker="none", candidates=30, top_k=5)
+    return make_deps(settings, store, llm)
+
+
+def test_empty_real_store_still_serves_price_only_questions(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from finassist.graph import build_graph
+    from finassist.retrieval import EmptyStoreError
+    from finassist.schemas import IntentResult
+
+    class _Classifier:
+        def invoke(self, _msgs):
+            return IntentResult(intent="price", tickers=["AAPL"])
+
+    class _LLM:
+        def with_structured_output(self, schema, include_raw=False):
+            return _Classifier()
+
+        def invoke(self, _msgs):
+            return SimpleNamespace(content="AAPL trades at 123.0.")
+
+    deps = _empty_store_deps(tmp_path, monkeypatch, _LLM())
+    assert deps.price("AAPL").price == 123.0
+    with pytest.raises(EmptyStoreError):
+        deps.retrieve("q", ["AAPL"])
+
+    out = build_graph(deps).invoke({"question": "AAPL price?"})["output"]
+    assert out.intent == "price"
+    assert out.stock_price is not None and out.stock_price.price == 123.0
+    assert out.citations == []
+
+
+def test_graph_price_intent_never_calls_retrieve_when_it_would_raise():
+    from finassist.graph import Deps, build_graph
+    from finassist.retrieval import EmptyStoreError
+    from finassist.schemas import FinanceAnswer, IntentResult, PriceInfo
+
+    def retrieve(q, tks):
+        raise EmptyStoreError("empty")
+
+    deps = Deps(
+        classify=lambda q: IntentResult(intent="price", tickers=["AAPL"]),
+        retrieve=retrieve,
+        price=lambda t: PriceInfo(ticker=t, price=1.0, as_of="2026-10-28T00:00:00+00:00"),
+        generate=lambda q, cs, ps: "ok",
+        structure=lambda q, a, cs, ps, it: FinanceAnswer(intent=it, answer=a),
+    )
+    out = build_graph(deps).invoke({"question": "AAPL price?"})["output"]
+    assert out.intent == "price" and out.stock_price.price == 1.0

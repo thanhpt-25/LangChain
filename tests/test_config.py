@@ -1,3 +1,5 @@
+import pytest
+
 from finassist.config import normalize_base_url, get_settings
 
 
@@ -21,6 +23,21 @@ def test_price_timeout_default_and_env(monkeypatch):
     assert get_settings().price_timeout == 8.0
     monkeypatch.setenv("FINASSIST_PRICE_TIMEOUT", "2.5")
     assert get_settings().price_timeout == 2.5
+
+
+@pytest.mark.parametrize("raw", ["0", "-1", "nan", "inf", "-inf", "abc", ""])
+def test_price_timeout_invalid_falls_back_to_default_with_warning(monkeypatch, caplog, raw):
+    monkeypatch.setenv("FINASSIST_PRICE_TIMEOUT", raw)
+    with caplog.at_level("WARNING", logger="finassist.config"):
+        assert get_settings().price_timeout == 8.0
+    assert "FINASSIST_PRICE_TIMEOUT" in caplog.text
+
+
+def test_price_timeout_valid_value_logs_nothing(monkeypatch, caplog):
+    monkeypatch.setenv("FINASSIST_PRICE_TIMEOUT", "3.5")
+    with caplog.at_level("WARNING", logger="finassist.config"):
+        assert get_settings().price_timeout == 3.5
+    assert caplog.text == ""
 
 
 def test_retrieval_settings_defaults(monkeypatch):
