@@ -159,7 +159,7 @@ Hai biến thể còn lại để tách tác động. 3b (bảng + tiền tố, 
 
 q10 không được cứu. Chunk duy nhất thỏa bằng chứng của q10 là NVDA-2026-15-142, nay chứa dòng "Data Center | 193,737 | 115,186 | 47,525" (hàng và con số cùng một dòng), nhưng nó không vào 30 ứng viên của vector ở cả ba biến thể (ranks [None]), nên reranker không thể xếp lại nó. Ở baseline chunk đó nằm ở hạng 13. Nguyên nhân gần nhất là biểu diễn embedding của một bảng nhiều số vẫn ở xa câu hỏi bằng lời, và định dạng hàng không thay đổi điều đó. q20 (nhiều nhóm bằng chứng, trong đó có "215,938" và "Up 65%") vẫn có bằng chứng trong top-5 ở cả ba biến thể.
 
-Các câu còn trượt ở top-5 trong cấu hình cuối (giai đoạn 1, vector top-30 + MiniLM): q04, q05, q10, q11, q15, q16, q22, q24, q25. Khoảng cách tới mục tiêu: any@5 64% so với 70%, thiếu 6 điểm (2 câu; 18 trên 25 mới đạt); all@5 36% so với 40%, thiếu 4 điểm (1 câu); p50 149 ms, vượt xa ngưỡng độ trễ. Hai mục tiêu chất lượng chưa đạt sau ba giai đoạn.
+Các câu còn trượt ở top-5 trong cấu hình cuối (giai đoạn 1, vector top-30 + MiniLM): q04, q05, q10, q11, q15, q16, q22, q24, q25. Khoảng cách tới mục tiêu: any@5 64% so với 70%, thiếu 6 điểm (2 câu; 18 trên 25 mới đạt); all@5 36% so với 40%, thiếu 4 điểm (1 câu); p50 149 ms, còn xa mới chạm ngưỡng 3 giây. Hai mục tiêu chất lượng chưa đạt sau ba giai đoạn.
 ## cấu hình mặc định cuối cùng
 
 Cấu hình: mode=dense, reranker=cross-encoder/ms-marco-MiniLM-L-6-v2, candidates=30, chroma_dir=chroma
