@@ -33,6 +33,9 @@ CONTROL_CASES = [
     ("Rủi ro kiểm soát xuất khẩu của NVIDIA là gì?", "filing"),
     ("NVDA price and its export control risk?", "both"),
     ("Giá cổ phiếu Apple hiện tại là bao nhiêu?", "price"),
+    ("What risks does NVDA disclose, and is the stock price up today?", "both"),
+    ("Why did Apple's stock price fall recently, and what does the 10-K say about risks?", "both"),
+    ("What does Microsoft say about competition in its 10-K?", "filing"),
 ]
 
 # phrasing -> intent the live classifier returned wrongly; marked xfail(strict). Empty: all 14 are refused.

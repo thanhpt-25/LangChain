@@ -61,7 +61,7 @@ Tất cả đều tùy chọn. Giá trị mặc định là cấu hình đã đ�
 | `FINASSIST_EMBED_PREFIX` | `0` | `1` thì embed thêm tiền tố ticker, năm, Item (tùy chọn đã đo và không được chọn) |
 | `FINASSIST_TABLE_ROWS` | `0` | `1` thì mỗi hàng bảng thành một dòng văn bản (tùy chọn đã đo và không được chọn) |
 | `FINASSIST_CHROMA_DIR` | `data/chroma` | thư mục kho Chroma; đặt thư mục khác để thử mà không đụng kho chuẩn |
-| `FINASSIST_PRICE_TIMEOUT` | `8` | số giây chờ yfinance; quá hạn thì dùng giá cache (`stale`) hoặc báo không có giá |
+| `FINASSIST_PRICE_TIMEOUT` | `8` | số giây chờ yfinance cho mỗi ticker; quá hạn thì dùng giá cache (`stale`) hoặc báo không có giá. Giá trị <= 0, nan, inf hoặc không phải số thì dùng mặc định 8 và ghi cảnh báo |
 
 Hai biến `FINASSIST_EMBED_PREFIX` và `FINASSIST_TABLE_ROWS` đổi cách chunk, nên sau khi bật phải nạp lại kho:
 
@@ -113,13 +113,13 @@ Cách đọc: precision và relevancy tăng (relevancy phần lớn vì ít câu
 ## Kiểm thử
 
 ```bash
-uv run pytest -q                                       # 234 passed, 35 skipped (integration tests skipped)
+uv run pytest -q                                       # 248 passed, 38 skipped (integration tests skipped)
 RUN_INTEGRATION=1 uv run pytest tests/test_llm_smoke.py tests/test_retrieval_integration.py tests/test_advice_refusal.py -q   # needs the router up and a populated data/chroma
 ```
 
-35 test bị bỏ qua là các integration test cần router, model thật và `data/chroma`. Trong đó `tests/test_retrieval_integration.py` có ba test chỉ cần model cục bộ: q03 và q21 phải có chunk bằng chứng trong top-5, còn q05 là `xfail` ở chế độ strict (bằng chứng của q05 nằm ở hạng 12, nên test sẽ báo lỗi ngay khi một thay đổi làm nó vào top-5 và nhắc cập nhật tài liệu).
+38 test bị bỏ qua là các integration test cần router, model thật và `data/chroma`. Trong đó `tests/test_retrieval_integration.py` có ba test chỉ cần model cục bộ: q03 và q21 phải có chunk bằng chứng trong top-5, còn q05 là `xfail` ở chế độ strict (bằng chứng của q05 nằm ở hạng 12, nên test sẽ báo lỗi ngay khi một thay đổi làm nó vào top-5 và nhắc cập nhật tài liệu).
 
-`tests/test_advice_refusal.py` chạy bộ phân loại thật trên 14 cách hỏi xin lời khuyên đầu tư hoặc dự đoán giá và 6 câu đối chứng. Lần chạy gần nhất: cả 14 câu bị từ chối và 6 câu đối chứng giữ đúng intent. Với router bật, ba file integration trên cho 48 passed, 1 xfailed.
+`tests/test_advice_refusal.py` chạy bộ phân loại thật trên 14 cách hỏi xin lời khuyên đầu tư hoặc dự đoán giá và 9 câu đối chứng (có 3 câu ghép khó hơn). Lần chạy gần nhất: cả 14 câu bị từ chối và 9 câu đối chứng giữ đúng intent. Với router bật, ba file integration trên cho 51 passed, 1 xfailed.
 
 ## Giới hạn đã biết
 

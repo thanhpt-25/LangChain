@@ -125,7 +125,7 @@ Bảng sự cố đầy đủ hơn nằm ở `docs/ARCHITECTURE.md` mục 6, và
 
 ### "Bạn đã kiểm chứng bằng cách nào"
 
-- `uv run pytest -q`: 234 passed, 35 skipped (35 integration test cần `RUN_INTEGRATION=1`). `tests/test_retrieval_integration.py` chạy được chỉ với model cục bộ: 2 passed, 1 xfailed (q05 là miss đã biết). Với router bật, các integration test khác cũng chạy được; lần chạy gần nhất (kèm `tests/test_advice_refusal.py`) ghi nhận 48 passed và 1 xfailed.
+- `uv run pytest -q`: 248 passed, 38 skipped (38 integration test cần `RUN_INTEGRATION=1`). `tests/test_retrieval_integration.py` chạy được chỉ với model cục bộ: 2 passed, 1 xfailed (q05 là miss đã biết). Với router bật, các integration test khác cũng chạy được; lần chạy gần nhất (kèm `tests/test_advice_refusal.py`) ghi nhận 51 passed và 1 xfailed.
 - Bộ đo truy hồi: 25 câu có nhóm bằng chứng viết tay, không gọi LLM, chạy bằng `uv run python -m eval.retrieval_eval --label ...`. Kết quả từng giai đoạn ở `reports/retrieval_experiments.md`: any@5 48% lên 64%, all@5 28% lên 36%, mục tiêu 70% và 40% chưa đạt. Bộ đo chỉ có 25 câu, mỗi câu là 4 điểm phần trăm.
 - RAGAS: `reports/ragas_baseline.md` (vector thuần, đã chú giải), `reports/ragas_baseline_rerun.md` (chạy lại, để đo nhiễu) và `reports/ragas_retrieval_v2.md` (cấu hình hiện tại). 25 câu chấm bằng RAGAS, 30 câu kiểm intent (30/30), kèm Caveats (judge cùng model với app; relevancy 0.0 ở các câu hedge là artifact của RAGAS). Chênh lệch giữa các cấu hình nằm trong nhiễu 0.02 đến 0.03 ở faithfulness và recall, nên chưa kết luận được.
 - Ground truth do người viết tay từ 10-K, 30 câu (`eval/golden_set.json`).

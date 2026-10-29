@@ -363,7 +363,7 @@ Phép kiểm này trả lời câu hỏi "con số có nằm trong context khôn
 |---|---|---|
 | Không nạp được model reranker (chưa có trong cache và không có mạng, hoặc cache hỏng) | Ghi cảnh báo `reranker ... unavailable`, retriever dùng top-5 vector thuần. Retriever được cache nên các câu sau không thử lại. | `retrieval.make_retriever` |
 | Router LLM không phản hồi | Lỗi nổi lên khỏi đồ thị. CLI in một dòng `error:` kèm gợi ý dùng `--replay`; Streamlit hiện `st.error`. | `cli.py`, `streamlit_app.py` |
-| yfinance lỗi, không có mạng hoặc quá `FINASSIST_PRICE_TIMEOUT` giây (mặc định 8) | Dùng giá trong cache, đánh dấu `stale=true`. Lời gọi chạy trong thread daemon, hết giờ thì ném `TimeoutError` và ghi cảnh báo như mọi lỗi khác. | `tools.get_stock_price`, `tools._call_with_timeout` |
+| yfinance lỗi, không có mạng hoặc quá `FINASSIST_PRICE_TIMEOUT` giây (mặc định 8) | Dùng giá trong cache, đánh dấu `stale=true`. Lời gọi chạy trong thread daemon, hết giờ thì ném `TimeoutError` và ghi cảnh báo như mọi lỗi khác. Timeout áp dụng cho từng ticker, nên câu hỏi giá ba ticker có thể chờ tới ba lần timeout. Giá trị `FINASSIST_PRICE_TIMEOUT` <= 0, nan, inf hoặc không phải số thì dùng mặc định 8 và ghi cảnh báo. | `tools.get_stock_price`, `tools._call_with_timeout` |
 | Không có cả mạng lẫn cache | Ném `PriceUnavailable`. Câu `price` trả `PRICE_UNAVAILABLE_TEXT`; câu `both` vẫn trả phần filing kèm ghi chú thiếu giá. | `price_tool`, `generate_answer` |
 | File `prices.json` hỏng hoặc sai định dạng | Bỏ qua kèm cảnh báo trong log; lần lấy giá live kế tiếp ghi đè lại file | `tools._read` |
 | Ghi cache bị gián đoạn | Ghi qua file tạm rồi `os.replace`, nên file cũ không bao giờ ở trạng thái ghi dở | `tools._write_atomic` |
@@ -408,7 +408,7 @@ LLM không biết giá hôm nay. Đồ thị gọi `get_stock_price`, đưa kế
 
 ### 7.5 Từ chối dựa vào bộ phân loại
 
-Việc từ chối câu ngoài phạm vi, kể cả xin tư vấn đầu tư, dựa hoàn toàn vào intent `out_of_scope` của bộ phân loại, cộng với luật "không tư vấn đầu tư" trong prompt trả lời. Không có danh sách từ khóa chặn hay lớp kiểm tra thứ hai. Lý do là câu hỏi tự nhiên có quá nhiều cách diễn đạt, và một danh sách từ khóa vừa chặn nhầm vừa bỏ sót. Cái giá là nếu bộ phân loại xếp nhầm một câu xin tư vấn thành `price`, không còn lớp nào chặn nó. `tests/test_advice_refusal.py` chạy bộ phân loại thật trên 14 cách hỏi xin lời khuyên hoặc dự đoán (tiếng Anh và tiếng Việt): cả 14 đều bị từ chối, và 6 câu đối chứng giữ đúng intent. Kết quả này là một lần đo trên 14 câu và không bảo đảm cho các cách diễn đạt khác.
+Việc từ chối câu ngoài phạm vi, kể cả xin tư vấn đầu tư, dựa hoàn toàn vào intent `out_of_scope` của bộ phân loại, cộng với luật "không tư vấn đầu tư" trong prompt trả lời. Không có danh sách từ khóa chặn hay lớp kiểm tra thứ hai. Lý do là câu hỏi tự nhiên có quá nhiều cách diễn đạt, và một danh sách từ khóa vừa chặn nhầm vừa bỏ sót. Cái giá là nếu bộ phân loại xếp nhầm một câu xin tư vấn thành `price`, không còn lớp nào chặn nó. `tests/test_advice_refusal.py` chạy bộ phân loại thật trên 14 cách hỏi xin lời khuyên hoặc dự đoán (tiếng Anh và tiếng Việt): cả 14 đều bị từ chối, và 9 câu đối chứng (gồm 3 câu ghép khó hơn) giữ đúng intent. Kết quả này là một lần đo trên 14 câu và không bảo đảm cho các cách diễn đạt khác.
 
 ### 7.6 Các quyết định còn lại
 
