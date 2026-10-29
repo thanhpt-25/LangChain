@@ -1,6 +1,6 @@
-# Evidence links
+# Liên kết bằng chứng
 
-LangSmith project: `finassist-w1`
+Dự án LangSmith: `finassist-w1`
 
 - Intent `both` (price + filing retrieval), question "What is NVIDIA's current stock price and how do export controls threaten it?":
   https://smith.langchain.com/o/80181169-cd2d-47d8-b72d-0a72214e4700/projects/p/a7764340-befe-428d-9018-0422833d27ab/r/01a18548-f611-70d1-ad75-5bb267a4a30e?trace_id=01a18548-f611-70d1-ad75-5bb267a4a30e&start_time=2026-10-29T01:31:53.745703

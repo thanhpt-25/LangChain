@@ -1,4 +1,4 @@
-# LangSmith trace tree (project finassist-w1)
+# Cây trace LangSmith (dự án finassist-w1)
 
 ## Trace `finassist` (01a18549-d281-74e8-93cf-cb568132d110)
 
@@ -42,4 +42,3 @@ finassist [chain] 13.65s
     ChatAnthropic [llm] 5.24s
       - prompt = [[{"id": ["langchain", "schema", "messages", "SystemMessage"], "kwargs": {"content": "Extract structured fields from the ANSWER using the CONTEXT.\n- revenue: an OBJECT {\"value\": number, \"unit\": \"USD millions\", \"period\": e.g. \"FY2025\"}, never a bare number. value is total revenue in USD...
 ```
-
