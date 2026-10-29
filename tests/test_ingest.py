@@ -152,3 +152,24 @@ def test_fetch_filings_find_10k(tmp_path):
     assert mod.find_10k({"form": ["8-K", "10-K", "10-K"]}, "AAPL") == 1
     with pytest.raises(SystemExit, match="NVDA: no 10-K"):
         mod.find_10k({"form": ["8-K", "10-Q"]}, "NVDA")
+
+
+HTML_TABLE = (
+    "<html><body><table>"
+    "<tr><td>Net income</td><td>$</td><td>133,749</td><td>$</td><td>101,832</td></tr>"
+    "<tr><td>Margin</td><td>45</td><td>%</td></tr>"
+    "<tr><td>Loss</td><td>(1,234</td><td>)</td></tr>"
+    "</table></body></html>"
+)
+
+
+def test_table_rows_become_single_lines():
+    text = html_to_text(HTML_TABLE, table_rows=True)
+    lines = [ln for ln in text.splitlines() if ln]
+    assert lines == ["Net income | 133,749 | 101,832", "Margin | 45%", "Loss | (1,234)"]
+
+
+def test_default_html_to_text_still_splits_cells_onto_lines():
+    text = html_to_text(HTML_TABLE)
+    assert "Net income | 133,749" not in text
+    assert "Net income" in text.splitlines() and "133,749" in text.splitlines()

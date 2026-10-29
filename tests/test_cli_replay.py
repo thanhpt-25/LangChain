@@ -83,3 +83,16 @@ def test_record_includes_retrieved_chunks():
     rec = to_record({"question": "q", "error": "e", "output": FinanceAnswer(intent="filing", answer="a"),
                    "retrieved_chunks": [c]})
     assert rec["error"] == "e" and rec["retrieved"][0]["chunk_id"] == "AAPL-2025-8-000"
+
+
+def test_ingest_accepts_rebuild_flag(monkeypatch):
+    import finassist.cli as cli
+
+    seen = {}
+    monkeypatch.setattr(cli, "_cmd_ingest", lambda rebuild=False: seen.update(rebuild=rebuild))
+    monkeypatch.setattr("sys.argv", ["finassist", "ingest", "--rebuild"])
+    cli.main()
+    assert seen == {"rebuild": True}
+    monkeypatch.setattr("sys.argv", ["finassist", "ingest"])
+    cli.main()
+    assert seen == {"rebuild": False}

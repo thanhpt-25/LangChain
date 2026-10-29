@@ -25,7 +25,7 @@ def test_every_evidence_group_is_satisfiable_by_some_chunk():
     from finassist.ingest import load_filing
 
     s = get_settings()
-    corpus = {t: [" ".join(c.text.lower().split()) for c in load_filing(t, s.raw_dir)] for t in TICKERS}
+    corpus = {t: [" ".join(c.text.lower().split()) for c in load_filing(t, s.raw_dir, table_rows=s.table_rows)] for t in TICKERS}
     for q in GOLD:
         for g in q.get("evidence", []):
             needles = [" ".join(n.lower().split()) for n in g["contains"]]
