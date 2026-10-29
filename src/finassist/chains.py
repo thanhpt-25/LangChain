@@ -8,6 +8,7 @@ from langchain_anthropic import ChatAnthropic
 from finassist.config import TICKERS, Settings
 from finassist.graph import Deps
 from finassist.postprocess import MARKER_RE
+from finassist.retrieval import make_retriever
 from finassist.schemas import Chunk, FinanceAnswer, Intent, IntentResult, LLMExtraction, Money, PriceInfo
 from finassist.tools import get_stock_price
 from finassist.vectorstore import FilingStore
@@ -110,7 +111,7 @@ def coerce_extraction(args) -> LLMExtraction:
     )
 
 
-def make_deps(settings: Settings, store: FilingStore, llm: ChatAnthropic) -> Deps:
+def make_deps(settings: Settings, store: FilingStore, llm: ChatAnthropic, retriever=None) -> Deps:
     classifier = llm.with_structured_output(IntentResult)
     extractor = llm.with_structured_output(LLMExtraction, include_raw=True)
     cache_path = settings.cache_dir / "prices.json"
@@ -119,7 +120,10 @@ def make_deps(settings: Settings, store: FilingStore, llm: ChatAnthropic) -> Dep
         return classifier.invoke([("system", CLASSIFY_SYSTEM), ("human", f"QUESTION\n{question}")])
 
     def retrieve(question: str, tickers: list[str]) -> list[Chunk]:
-        return [c for t in tickers for c in store.search(question, t, settings.top_k)]
+        nonlocal retriever
+        if retriever is None:  # built on first use so deps that never retrieve need no retrieval settings
+            retriever = make_retriever(settings, store)
+        return retriever.retrieve(question, tickers)
 
     def price(ticker: str) -> PriceInfo:
         return get_stock_price(ticker, cache_path, offline=settings.price_offline)

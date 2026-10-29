@@ -11,7 +11,7 @@ Tài liệu mô tả ứng dụng đúng như mã trong `src/finassist/`. Các m
 
 ## 1. Hệ thống nhìn từ bên ngoài
 
-Toàn bộ ứng dụng chạy trong một tiến trình Python. Embedding cũng chạy ngay trong tiến trình đó, nên chỉ có ba dịch vụ bên ngoài: router LLM, yfinance và SEC EDGAR. SEC EDGAR chỉ được gọi lúc chuẩn bị dữ liệu, còn LangSmith chỉ nhận trace khi được bật.
+Toàn bộ ứng dụng chạy trong một tiến trình Python. Embedding và mô hình reranker cũng chạy ngay trong tiến trình đó, nên chỉ có ba dịch vụ bên ngoài: router LLM, yfinance và SEC EDGAR. Hai mô hình cục bộ được tải từ Hugging Face ở lần chạy đầu tiên rồi nằm trong cache của máy. SEC EDGAR chỉ được gọi lúc chuẩn bị dữ liệu, còn LangSmith chỉ nhận trace khi được bật.
 
 ```mermaid
 flowchart LR
@@ -58,6 +58,7 @@ flowchart TB
     end
 
     subgraph support["Adapter và kiểm chứng"]
+        rv["retrieval.py<br/>Retriever"]
         vs["vectorstore.py"]
         tools["tools.py"]
         post["postprocess.py"]
@@ -69,13 +70,14 @@ flowchart TB
     rt --> gr
     rt --> chains
     chains -->|"hiện thực Deps"| gr
-    chains --> vs
+    chains --> rv
+    rv --> vs
     chains --> tools
     chains --> post
     gr --> post
 ```
 
-`schemas.py` (các kiểu dữ liệu) và `config.py` (cấu hình) được hầu hết các module dùng nên không vẽ vào sơ đồ.
+`schemas.py` (các kiểu dữ liệu) và `config.py` (cấu hình) được hầu hết các module dùng nên không vẽ vào sơ đồ. `retrieval.py` đứng giữa `chains.py` và `vectorstore.py`: `chains.py` hỏi `Retriever`, còn `Retriever` mới hỏi kho Chroma.
 
 Điểm đáng nhìn kỹ là mũi tên giữa `chains.py` và `graph.py`. `graph.py` không biết gì về LLM, Chroma hay yfinance. Nó chỉ biết một dataclass `Deps` gồm năm hàm: `classify`, `retrieve`, `price`, `generate`, `structure`. `chains.py` hiện thực năm hàm đó bằng các dịch vụ thật, còn test thay chúng bằng hàm giả. Nhờ vậy toàn bộ logic điều hướng và kiểm chứng chạy được trong unit test mà không cần mạng.
 
@@ -87,11 +89,12 @@ flowchart TB
 | `app/streamlit_app.py` | câu hỏi trong ô nhập | trang web: câu trả lời, citation, chunk, JSON | không (qua `runtime`) |
 | `runtime.py` | cấu hình | `build_app()` dựng đồ thị hoàn chỉnh, `ask()` chạy một câu hỏi kèm tag và metadata trace | không |
 | `graph.py` | `Deps` | đồ thị LangGraph biên dịch sẵn | không |
-| `chains.py` | `Settings`, kho Chroma, client LLM | một `Deps` thật; chứa ba prompt (phân loại, trả lời, trích field) | router LLM |
-| `vectorstore.py` | danh sách `Chunk`, câu truy vấn | `search(query, ticker, k)` trả `Chunk` kèm khoảng cách | Chroma, mô hình embedding cục bộ |
+| `chains.py` | `Settings`, kho Chroma, client LLM | một `Deps` thật (hàm `retrieve` đi qua `Retriever`); chứa ba prompt (phân loại, trả lời, trích field) | router LLM |
+| `retrieval.py` | câu truy vấn, danh sách ticker, `Settings` | `Retriever.retrieve` trả `Chunk` (5 chunk mỗi ticker): vector top-30 rồi cross-encoder chấm lại; có tùy chọn BM25 và RRF | mô hình reranker cục bộ |
+| `vectorstore.py` | danh sách `Chunk`, câu truy vấn | `search(query, ticker, k)` trả `Chunk` kèm khoảng cách; `chunks_for(ticker)`; `reset()` | Chroma, mô hình embedding cục bộ |
 | `tools.py` | mã ticker | `PriceInfo` (giá, vốn hóa, P/E, `as_of`, `stale`) hoặc lỗi `PriceUnavailable` | yfinance, file cache |
 | `postprocess.py` | câu trả lời, các chunk đã retrieve | danh sách `Citation` hợp lệ; `FinanceAnswer` đã bỏ số không có trong chunk | không |
-| `ingest.py` | HTML của 10-K | các `Chunk` có metadata | không |
+| `ingest.py` | HTML của 10-K | các `Chunk` có metadata; tùy chọn đổi mỗi hàng bảng thành một dòng văn bản | không |
 | `schemas.py` | không | các kiểu Pydantic dùng chung | không |
 | `config.py` | file `.env` và biến môi trường | `Settings` | không |
 
@@ -99,7 +102,7 @@ flowchart TB
 
 | Kiểu | Chứa gì | Ai tạo |
 |---|---|---|
-| `Chunk` | một đoạn 10-K: `chunk_id`, text, ticker, năm tài chính, Item, khoảng cách `score` | `ingest.py`, rồi `vectorstore.search` |
+| `Chunk` | một đoạn 10-K: `chunk_id`, text, ticker, năm tài chính, Item, `score` (khoảng cách Chroma, càng thấp càng gần; chunk chỉ do BM25 tìm thấy thì là `None`) | `ingest.py`, rồi `vectorstore.search` |
 | `PriceInfo` | giá, vốn hóa, P/E, thời điểm `as_of`, cờ `stale` | `tools.get_stock_price` |
 | `IntentResult` | intent, danh sách ticker, `language`, `search_query` | LLM phân loại |
 | `LLMExtraction` | `ticker`, `fiscal_year`, `revenue`, `eps`, `risk_factors` | LLM trích field |
@@ -150,7 +153,7 @@ State của đồ thị là một `TypedDict` tên `GraphState`. Mỗi node đ�
 |---|---|---|---|
 | `classify_intent` | `question` | `intent`, `tickers`, `search_query`, và khởi tạo `retrieved_chunks=[]`, `price_data=[]`, `error=None`, `short_circuit=False` | Chuẩn hóa ticker (cắt khoảng trắng, viết hoa), bỏ ticker ngoài AAPL/MSFT/NVDA. Nếu intent cần dữ liệu mà không còn ticker hợp lệ thì đổi thành `out_of_scope`. |
 | `price_tool` | `tickers` | `price_data`, `error` | Lấy giá từng ticker. Ticker nào lỗi thì ghi lý do vào `error`, các ticker còn lại vẫn chạy bình thường. |
-| `retrieve` | `search_query`, `tickers` | `retrieved_chunks` | Với mỗi ticker lấy top-k chunk (mặc định k = 5), lọc theo ticker ngay trong truy vấn Chroma. |
+| `retrieve` | `search_query`, `tickers` | `retrieved_chunks` | Với mỗi ticker, `Retriever` lấy 30 chunk ứng viên từ Chroma (lọc theo ticker ngay trong truy vấn), cross-encoder `ms-marco-MiniLM-L-6-v2` chấm lại từng cặp câu hỏi và chunk, rồi giữ 5 chunk điểm cao nhất (k = 5 vẫn là số chunk gửi cho LLM). Đặt `FINASSIST_RERANKER=none` thì bỏ bước chấm lại và trả top-5 của vector, đúng như trước đây. Chi tiết ở mục 4.5. |
 | `generate_answer` | câu hỏi gốc, chunk, giá | `answer`, và có thể `error`, `short_circuit` | Gọi LLM với context gồm chunk và khối `PRICE DATA`. Với câu cần filing, kiểm tra citation và thử lại nếu thiếu (xem mục 5.2). |
 | `format_output` | toàn bộ state | `output` (`FinanceAnswer`) | Gọi LLM trích field, rồi ghi đè citation và giá bằng dữ liệu tất định. |
 | `refuse` | không đọc gì | `answer`, `output` | Trả mẫu từ chối song ngữ cố định. |
@@ -174,7 +177,14 @@ flowchart TD
 
 Mỗi chunk có `chunk_id` ổn định, ví dụ `AAPL-2025-1A-012` (ticker, năm tài chính, Item, số thứ tự trong Item). Chroma dùng chính `chunk_id` làm khóa nên chạy `finassist ingest` lần hai không tạo thêm bản sao: kho có 1.162 chunk (AAPL 256, MSFT 451, NVDA 455) và con số này không đổi sau mỗi lần nạp.
 
-Hai chi tiết của 10-K thật đã ảnh hưởng tới parser:
+Hai bước của ingestion có công tắc riêng, cả hai tắt mặc định vì phép đo không ủng hộ chúng (mục 7.6).
+
+- `FINASSIST_TABLE_ROWS=1` làm `html_to_text` đổi mỗi hàng `<tr>` thành một dòng, các ô nối bằng ` | `, ví dụ `Data Center | 193,737 | 115,186 | 47,525`. Ở dạng mặc định mỗi ô là một dòng riêng và nhãn hàng tách khỏi con số.
+- `FINASSIST_EMBED_PREFIX=1` embed thêm tiền tố kiểu `AAPL FY2025 Item 8` trước nội dung chunk. Chroma vẫn chỉ lưu nội dung gốc, nên LLM không thấy tiền tố.
+
+Đổi chunking làm `chunk_id` đổi theo, nên sau khi bật một trong hai biến phải chạy `uv run finassist ingest --rebuild`. Lệnh này xóa collection rồi nạp lại. Chạy `ingest` thường sau khi đổi sẽ để lại chunk cũ trong kho. Khi thử nghiệm, kho khác được chọn bằng `FINASSIST_CHROMA_DIR`, vì vậy `data/chroma` không bị đụng tới. Kho theo hàng bảng có 1.168 chunk (AAPL 261, MSFT 452, NVDA 455), nhiều hơn kho chuẩn 6 chunk.
+
+Ba chi tiết của 10-K thật đã ảnh hưởng tới parser:
 
 - 10-K liệt kê mỗi Item hai lần, một lần trong mục lục và một lần ở phần thân. `split_items` giữ đoạn dài nhất của mỗi Item, tức là phần thân. Dòng bắt đầu bằng "Item 1A" nhưng nằm giữa một câu tham chiếu (ví dụ "see Item 1A of this Form") bị loại bằng `_is_heading`.
 - Microsoft in lại tiêu đề "PART II / Item N" ở đầu mỗi trang, làm một Item bị cắt thành nhiều phần. Parser gộp các tiêu đề lặp liên tiếp của cùng một Item.
@@ -190,6 +200,7 @@ sequenceDiagram
     participant G as Đồ thị LangGraph
     participant L as LLM
     participant P as price_tool
+    participant R as Retriever
     participant V as Chroma
     participant X as postprocess
 
@@ -198,8 +209,11 @@ sequenceDiagram
     L-->>G: intent=both, tickers=[NVDA]
     G->>P: get_stock_price(NVDA)
     P-->>G: PriceInfo (giá, vốn hóa, P/E, stale=false)
-    G->>V: search(search_query, NVDA, k=5)
-    V-->>G: 5 Chunk kèm khoảng cách
+    G->>R: retrieve(search_query, [NVDA])
+    R->>V: search(search_query, NVDA, k=30)
+    V-->>R: 30 Chunk ứng viên kèm khoảng cách
+    R->>R: cross-encoder chấm lại 30 cặp, giữ 5
+    R-->>G: 5 Chunk (score vẫn là khoảng cách Chroma)
     G->>L: context = 5 chunk + khối PRICE DATA, kèm câu hỏi gốc
     L-->>G: answer có marker [chunk_id]
     G->>X: extract_citations(answer, chunks)
@@ -222,7 +236,7 @@ Thời gian từng bước trong trace đó:
 | `format_output` | 5,27 giây | `FinanceAnswer` hoàn chỉnh |
 | Tổng | 13,65 giây | |
 
-Hai bước chiếm gần hết thời gian đều là lời gọi LLM. URL trace và bản text của cây trace nằm ở [`evidence/links.md`](evidence/links.md) và [`evidence/trace_tree.md`](evidence/trace_tree.md). Giá trong trace là ảnh chụp tại thời điểm đó, vì vậy khi demo hãy đọc `as_of` của lần chạy hiện tại.
+Trace này được ghi trước khi thêm reranker, nên bước `retrieve` 0,74 giây là top-5 của vector. Trong bộ đo truy hồi, reranker thêm khoảng 120 đến 140 ms mỗi lần truy hồi (p50 từ 12 ms lên 134 đến 149 ms), nhỏ so với hai bước còn lại. Hai bước chiếm gần hết thời gian đều là lời gọi LLM. URL trace và bản text của cây trace nằm ở [`evidence/links.md`](evidence/links.md) và [`evidence/trace_tree.md`](evidence/trace_tree.md). Giá trong trace là ảnh chụp tại thời điểm đó, vì vậy khi demo hãy đọc `as_of` của lần chạy hiện tại.
 
 ### 4.3 LLM nhìn thấy gì
 
@@ -252,6 +266,31 @@ flowchart LR
 ```
 
 `retrieve` dùng `search_query`, còn `generate_answer` vẫn nhận câu hỏi gốc nên câu trả lời giữ ngôn ngữ của người hỏi. Với câu tiếng Anh, đồ thị bỏ qua `search_query` và tìm bằng câu gốc. Nhờ vậy điểm RAGAS baseline, vốn đo bằng câu tiếng Anh, không bị ảnh hưởng. Sau khi sửa, câu NVIDIA ở trên lấy được 5/5 chunk Item 1A với khoảng cách 0,27 đến 0,47.
+
+### 4.5 Retriever bên trong
+
+`Retriever` (`src/finassist/retrieval.py`) có hai tầng tùy chọn trên đầu truy vấn vector, và ba biến môi trường điều khiển chúng.
+
+```mermaid
+flowchart TD
+    Q["search_query và một ticker"] --> Mode{"FINASSIST_RETRIEVAL"}
+    Mode -->|"dense, mặc định"| D["Chroma: top-N theo vector<br/>N = FINASSIST_CANDIDATES, mặc định 30"]
+    Mode -->|"hybrid"| H["top-N vector và top-N BM25<br/>gộp bằng RRF"]
+    D --> Rr{"FINASSIST_RERANKER"}
+    H --> Rr
+    Rr -->|"cross-encoder, mặc định"| X["chấm lại từng cặp<br/>câu hỏi và chunk"]
+    Rr -->|"none"| T["giữ 5 chunk đầu"]
+    X --> T
+    T --> Out["5 chunk cho ticker này"]
+```
+
+Ba công tắc và giá trị mặc định:
+
+- `FINASSIST_RETRIEVAL`: `dense` hoặc `hybrid`. Mặc định `dense`. Giá trị khác bị từ chối khi `Retriever` được dựng, tức ở câu hỏi đầu tiên cần truy hồi.
+- `FINASSIST_RERANKER`: tên một cross-encoder của `sentence-transformers`, hoặc `none`. Mặc định `cross-encoder/ms-marco-MiniLM-L-6-v2` (khoảng 90 MB, tải một lần).
+- `FINASSIST_CANDIDATES`: số ứng viên lấy trước khi chấm lại. Mặc định 30.
+
+Cấu hình `dense` kèm `FINASSIST_RERANKER=none` trả đúng kết quả của `FilingStore.search(query, ticker, 5)`. Cross-encoder chỉ sắp xếp lại các ứng viên đã có, nên một chunk nằm ngoài 30 ứng viên của vector không bao giờ lên được top-5. `Chunk.score` giữ nghĩa khoảng cách Chroma và reranker không ghi đè nó, nên citation và bảng chunk trong giao diện vẫn đọc như trước. `Retriever` dựng ở lần truy hồi đầu tiên, vì thế mô hình reranker cũng được tải và nạp ở lần đầu đó.
 
 ## 5. Ai quyết định điều gì
 
@@ -322,6 +361,7 @@ Phép kiểm này trả lời câu hỏi "con số có nằm trong context khôn
 
 | Sự cố | Hành vi | Nơi xử lý |
 |---|---|---|
+| Không nạp được model reranker (chưa có trong cache và không có mạng, hoặc cache hỏng) | Ghi cảnh báo `reranker ... unavailable`, retriever dùng top-5 vector thuần. Retriever được cache nên các câu sau không thử lại. | `retrieval.make_retriever` |
 | Router LLM không phản hồi | Lỗi nổi lên khỏi đồ thị. CLI in một dòng `error:` kèm gợi ý dùng `--replay`; Streamlit hiện `st.error`. | `cli.py`, `streamlit_app.py` |
 | yfinance lỗi hoặc không có mạng | Dùng giá trong cache, đánh dấu `stale=true` | `tools.get_stock_price` |
 | Không có cả mạng lẫn cache | Ném `PriceUnavailable`. Câu `price` trả `PRICE_UNAVAILABLE_TEXT`; câu `both` vẫn trả phần filing kèm ghi chú thiếu giá. | `price_tool`, `generate_answer` |
@@ -381,10 +421,14 @@ Việc từ chối câu ngoài phạm vi, kể cả xin tư vấn đầu tư, d�
 | `search_query` chỉ dùng khi `language = other` | Viết lại mọi câu hỏi | Giữ nguyên hành vi, nên điểm RAGAS baseline vẫn có giá trị | Câu tiếng Anh diễn đạt vụng không được viết lại |
 | Ghim model `kr/claude-sonnet-5.5` | Các model `auto/*` của router | `auto/*` thường trả lỗi giới hạn tần suất từ upstream | Phụ thuộc một model cụ thể |
 | Record và replay | Chỉ chạy live | Demo vẫn chạy khi mất mạng hoặc router lỗi | Replay luôn hiện câu đã ghi, không phải câu mới gõ; Streamlit ghi rõ điều này |
+| Reranker cục bộ `ms-marco-MiniLM-L-6-v2` trên 30 ứng viên của vector (đã dùng) | Chỉ vector top-5 | Trên bộ đo 25 câu, any@5 từ 48% lên 64% (4 câu), all@5 từ 28% lên 36%, nhóm combined từ 0% lên 40%. Vượt ngưỡng 15 điểm đặt trước, nhưng chỉ hơn ngưỡng 1 điểm | Thêm khoảng 120 đến 140 ms mỗi lần truy hồi và một lần tải mô hình khoảng 90 MB. MRR gần như không đổi (0,371 lên 0,376), all@5 của nhóm risk giảm từ 10% xuống 0%, và q04 kém đi ở RAGAS (mục 8) |
+| Hybrid BM25 và RRF (đã đo, không dùng; `FINASSIST_RETRIEVAL=hybrid` còn trong mã) | Hybrid làm mặc định | Hybrid kèm MiniLM cho any@5 64% và all@5 36%, bằng đúng vector kèm MiniLM (tăng 0 điểm, ngưỡng là 5). Hybrid không reranker chỉ 56% và 32%, nhóm combined về 0%. BM25 không cứu q11, q15, q16 vì bằng chứng dùng từ khác với câu hỏi | Giữ thêm mã, thư viện `rank-bm25` và một tùy chọn không dùng |
+| Chunk theo hàng bảng và tiền tố embed (đã đo, không dùng; `FINASSIST_TABLE_ROWS`, `FINASSIST_EMBED_PREFIX` còn trong mã) | Bật hai tùy chọn này mặc định | Cấu hình tốt nhất của giai đoạn này (hàng bảng, tiền tố và MiniLM) chỉ đạt any@5 56% và all@5 24%, thấp hơn 8 và 12 điểm. Làm hỏng q07, q09, q23 và không cứu q05, q10, q24. Chưa có phép đo tiền tố riêng trên văn bản phẳng | Cần `ingest --rebuild` và một kho riêng khi thử lại |
+| `bge-reranker-base` (đã đo, không dùng) | Reranker lớn hơn thay MiniLM | any@5 56% (tăng 8 điểm, dưới ngưỡng 15), all@5 36%, p50 809 ms. MRR cao nhất (0,444) và nhóm risk giảm từ 60% xuống 50% ở any@5 | Chậm hơn khoảng năm lần mà không thêm câu nào vào top-5 |
 
 ## 8. Giới hạn đã biết
 
-1. Retrieval bỏ lỡ chunk chứa bảng số liệu. Trong báo cáo RAGAS baseline, cả năm câu có điểm thấp nhất đều không lấy được chunk vàng. Ví dụ điển hình là lợi nhuận ròng và EPS của Microsoft: ba chunk chứa con số (`MSFT-2026-8-001`, `8-000`, `7-016`) đều không vào top-5, và hệ thống trả lời rằng nó không thấy số liệu.
+1. Retrieval còn bỏ lỡ bằng chứng, và mục tiêu đặt ra chưa đạt. Trên bộ đo 25 câu (không gọi LLM), cấu hình hiện tại đạt any@5 64% và all@5 36%, so với 48% và 28% của vector thuần. Mục tiêu là 70% và 40%, thiếu 2 và 1 câu. Chín câu vẫn trượt ở top-5: q04, q05, q10 (số liệu), q11, q15, q16 (rủi ro), q22, q24, q25 (kết hợp). Ba câu q11, q22, q25 không có chunk bằng chứng nào trong 30 ứng viên, nên reranker không cứu được. Ví dụ điển hình là lợi nhuận ròng của Microsoft (q05): chunk chứa `133,749` nằm ở hạng 12 và hệ thống trả lời rằng nó không thấy số liệu. Phần RAGAS cho kết quả lẫn lộn. Context precision tăng từ 0,309 lên 0,342 và answer relevancy từ 0,687 lên 0,766 (phần lớn vì ít câu bị từ chối hơn). Faithfulness (0,939) và context recall (0,387 lên 0,400) không đổi trong phạm vi nhiễu 0,02 đến 0,03 giữa hai lần chạy vector thuần. q21 và q03 nay trả lời được; q04 tệ đi (recall từ 1,0 xuống 0,0); q05, q04, q24 vẫn thiếu bằng chứng trong ngữ cảnh. Vì vậy mức cải thiện nên đọc là nhỏ và chưa kết luận được ở phần RAGAS. Số liệu đầy đủ nằm ở [`../reports/retrieval_experiments.md`](../reports/retrieval_experiments.md).
 2. `ground_numbers` không hiểu ý nghĩa của con số. Ở q10 và q20 của baseline, hệ thống trả lời "total revenue 139,297" cho NVIDIA. Con số đó đến từ chunk `NVDA-2026-7-029`, một bảng theo mảng không có tiêu đề cột, và nó có thật trong chunk nên được giữ lại. Doanh thu thật là 215,938.
 3. Embedding chỉ có tiếng Anh. `search_query` giúp câu tiếng Việt, nhưng câu hỏi về bảng số liệu bằng tiếng Việt vẫn có thể trượt chunk.
 4. Từ chối chỉ có một lớp, như mục 7.5.
@@ -393,25 +437,43 @@ Việc từ chối câu ngoài phạm vi, kể cả xin tư vấn đầu tư, d�
 7. Marker citation chỉ nhận một ID trong mỗi cặp ngoặc (mục 7.3).
 8. Lời gọi yfinance chưa đặt timeout, nên mạng chậm có thể làm `price_tool` đứng lâu.
 
-Hướng cải thiện ưu tiên nằm trong [`NEXT_STEP.md`](NEXT_STEP.md): truy hồi kết hợp BM25 với vector, có reranker, và giữ tiêu đề cột khi cắt chunk bảng.
+Các hướng còn lại, rút ra từ những gì đã đo, nằm trong [`NEXT_STEP.md`](NEXT_STEP.md).
 
 ## 9. Chạy và quan sát
 
 ```bash
 uv run finassist ingest                    # nạp 10-K vào Chroma, chạy một lần
+uv run finassist ingest --rebuild          # xóa kho rồi nạp lại, cần khi đổi cách chunk
 uv run finassist ask "..."                 # chạy live
 uv run finassist ask "..." --record runs/demo.json   # chạy live và lưu kết quả
 uv run finassist ask x --replay runs/demo.json       # phát lại offline, câu hỏi truyền vào bị bỏ qua
 uv run streamlit run app/streamlit_app.py  # giao diện; ô Replay dùng runs/demo.json
+uv run python -m eval.retrieval_eval --label "tên lần chạy" [--append reports/retrieval_experiments.md]   # bộ đo truy hồi, không gọi LLM
 ```
+
+Biến môi trường của phần truy hồi (đặt trong `.env` hoặc shell):
+
+| Biến | Mặc định | Ý nghĩa |
+|---|---|---|
+| `FINASSIST_RETRIEVAL` | `dense` | `dense` hoặc `hybrid` (thêm BM25 và RRF) |
+| `FINASSIST_RERANKER` | `cross-encoder/ms-marco-MiniLM-L-6-v2` | tên cross-encoder, hoặc `none` để bỏ bước chấm lại |
+| `FINASSIST_CANDIDATES` | `30` | số ứng viên lấy trước khi chấm lại |
+| `FINASSIST_TOP_K` | `5` | số chunk mỗi ticker gửi cho LLM |
+| `FINASSIST_EMBED_PREFIX` | `0` | `1` thì embed thêm tiền tố ticker, năm, Item (cần `ingest --rebuild`) |
+| `FINASSIST_TABLE_ROWS` | `0` | `1` thì mỗi hàng bảng thành một dòng (cần `ingest --rebuild`) |
+| `FINASSIST_CHROMA_DIR` | `data/chroma` | thư mục kho Chroma, dùng để thử một kho khác mà không đụng kho chuẩn |
+
+Bộ đo đọc 25 câu có `evidence` trong `eval/golden_set.json`, in any@K, all@K, MRR và độ trễ theo nhóm, và nhận thêm `--mode`, `--reranker`, `--candidates`, `--show-misses` để thử một cấu hình mà không đổi `.env`. Lần chạy đầu với reranker tải mô hình về máy, sau đó chạy offline.
 
 `runtime.ask` gọi đồ thị với `run_name=finassist`, tag mặc định `demo` và metadata `app_version`. Khi các biến `LANGSMITH_*` có trong `.env`, LangChain tự gửi trace gồm từng node, từng lời gọi LLM, đầu vào và đầu ra của `price_tool` và danh sách chunk của `retrieve`. Lệnh `uv run python scripts/trace_link.py` in URL của trace mới nhất.
 
-`eval/run_ragas.py` dùng cùng `build_app` và gắn tag `eval`, nên các lần chạy đánh giá tách được khỏi các lần demo trong LangSmith.
+`eval/run_ragas.py` (chạy bằng `uv run python -m eval.run_ragas --tag <tên>`, `--tag` là bắt buộc và không còn tag mặc định) dùng cùng `build_app` và gắn tag `eval`, nên các lần chạy đánh giá tách được khỏi các lần demo trong LangSmith.
 
 ## 10. Tài liệu liên quan
 
 - [`evidence/links.md`](evidence/links.md) và [`evidence/trace_tree.md`](evidence/trace_tree.md): URL LangSmith và bản text của hai trace thật.
-- [`../reports/ragas_baseline.md`](../reports/ragas_baseline.md): điểm baseline, các ca thất bại và phần caveats.
+- [`../reports/ragas_baseline.md`](../reports/ragas_baseline.md): điểm baseline của hệ thống vector thuần, các ca thất bại và phần caveats.
+- [`../reports/retrieval_experiments.md`](../reports/retrieval_experiments.md): từng giai đoạn thí nghiệm truy hồi, quyết định giữ hoặc bỏ, và so sánh RAGAS.
+- [`../reports/ragas_retrieval_v2.md`](../reports/ragas_retrieval_v2.md): điểm RAGAS của cấu hình hiện tại.
 - [`KNOWLEDGE_CHECK.md`](KNOWLEDGE_CHECK.md): câu trả lời mẫu cho Giải thích, Dự đoán, Gỡ lỗi và Bảo vệ lựa chọn, có tham chiếu `file:line` vào mã.
-- [`NEXT_STEP.md`](NEXT_STEP.md): kế hoạch cải thiện retrieval.
+- [`NEXT_STEP.md`](NEXT_STEP.md): các hướng cải thiện còn lại sau thí nghiệm truy hồi.

@@ -5,7 +5,7 @@ import re
 import warnings
 from pathlib import Path
 
-from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
+from bs4 import BeautifulSoup, NavigableString, XMLParsedAsHTMLWarning
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from finassist.schemas import Chunk
@@ -19,12 +19,29 @@ ITEM_RE = re.compile(
 _splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
 
 
-def html_to_text(html: str) -> str:
+def _table_rows_to_lines(soup: BeautifulSoup) -> None:
+    """Replace each <tr> by one text line: cells joined with ' | '. SEC tables put '$', '%' and ')' in cells of their own."""
+    for tr in soup.find_all("tr"):
+        cells: list[str] = []
+        for td in tr.find_all(["td", "th"]):
+            text = re.sub(r"\s+", " ", td.get_text(" ", strip=True)).strip()
+            if not text or text == "$":
+                continue
+            if text in {")", "%", "%)"} and cells:
+                cells[-1] += text
+            else:
+                cells.append(text)
+        tr.replace_with(NavigableString("\n" + " | ".join(cells) + "\n"))
+
+
+def html_to_text(html: str, table_rows: bool = False) -> str:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", XMLParsedAsHTMLWarning)  # inline-XBRL docs are XHTML
         soup = BeautifulSoup(html, "lxml")
     for tag in soup.find_all(["script", "style", "ix:header"]):
         tag.decompose()
+    if table_rows:
+        _table_rows_to_lines(soup)
     text = soup.get_text("\n").replace("\xa0", " ")
     lines = [ln.strip() for ln in text.splitlines()]
     return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
@@ -74,7 +91,7 @@ def chunk_filing(ticker: str, fiscal_year: int, text: str, source_url: str = "")
     return chunks
 
 
-def load_filing(ticker: str, raw_dir: Path) -> list[Chunk]:
+def load_filing(ticker: str, raw_dir: Path, table_rows: bool = False) -> list[Chunk]:
     meta = json.loads((raw_dir / f"{ticker}.json").read_text(encoding="utf-8"))
-    text = html_to_text((raw_dir / f"{ticker}.html").read_text(encoding="utf-8", errors="replace"))
+    text = html_to_text((raw_dir / f"{ticker}.html").read_text(encoding="utf-8", errors="replace"), table_rows=table_rows)
     return chunk_filing(ticker, meta["fiscal_year"], text, meta["source_url"])

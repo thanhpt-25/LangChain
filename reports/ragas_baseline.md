@@ -1,3 +1,5 @@
+> Báo cáo này mô tả hệ thống vector thuần. Với hệ thống hiện tại (vector top-30 và reranker) xem `reports/ragas_retrieval_v2.md` và `reports/retrieval_experiments.md`.
+
 # RAGAS baseline
 
 Judge/LLM: `kr/claude-sonnet-5.5` · RAGAS-evaluated questions: 25

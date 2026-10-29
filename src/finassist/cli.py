@@ -47,15 +47,17 @@ def to_record(state: dict) -> dict:
     }
 
 
-def _cmd_ingest() -> None:
+def _cmd_ingest(rebuild: bool = False) -> None:
     from finassist.config import TICKERS, get_settings
     from finassist.ingest import load_filing
     from finassist.vectorstore import FilingStore, get_embeddings
 
     s = get_settings()
-    store = FilingStore(s.chroma_dir, get_embeddings(s))
+    store = FilingStore(s.chroma_dir, get_embeddings(s), embed_prefix=s.embed_prefix)
+    if rebuild:
+        store.reset()
     for t in TICKERS:
-        chunks = load_filing(t, s.raw_dir)
+        chunks = load_filing(t, s.raw_dir, table_rows=s.table_rows)
         store.upsert(chunks)
         print(f"{t}: {len(chunks)} chunks")
     print(f"total in store: {store.count()}")
@@ -84,20 +86,21 @@ def _cmd_ask(question: str, record: str | None, replay: str | None) -> None:
             Path(record).write_text(json.dumps(rec, indent=2, ensure_ascii=False), encoding="utf-8")
     except Exception as e:  # noqa: BLE001 - CLI boundary: one readable line instead of a traceback
         msg = " ".join(str(e).split())
-        _fail(f"error: {type(e).__name__}: {msg} (is the LLM router up? try --replay runs/demo.json)")
+        _fail(f"error: {type(e).__name__}: {msg} (is the LLM router up and are the models available offline? try --replay runs/demo.json)")
     print(render_record(rec))
 
 
 def main() -> None:
     p = argparse.ArgumentParser(prog="finassist")
     sub = p.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("ingest")
+    ing = sub.add_parser("ingest")
+    ing.add_argument("--rebuild", action="store_true")
     a = sub.add_parser("ask")
     a.add_argument("question")
     a.add_argument("--record")
     a.add_argument("--replay")
     args = p.parse_args()
     if args.cmd == "ingest":
-        _cmd_ingest()
+        _cmd_ingest(args.rebuild)
     else:
         _cmd_ask(args.question, args.record, args.replay)

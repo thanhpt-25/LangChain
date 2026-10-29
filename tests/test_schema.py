@@ -37,3 +37,9 @@ from finassist.schemas import LLMExtraction
 ])
 def test_llm_extraction_fiscal_year_is_lenient(raw, expected):
     assert LLMExtraction(fiscal_year=raw).fiscal_year == expected
+
+
+def test_chunk_context_prefix():
+    from finassist.schemas import Chunk
+    c = Chunk(chunk_id="AAPL-2025-8-001", text="x", ticker="AAPL", fiscal_year=2025, item="8")
+    assert c.context_prefix == "AAPL FY2025 Item 8"

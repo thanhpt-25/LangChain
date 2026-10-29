@@ -44,7 +44,7 @@ def _caveats(meta: dict) -> list[str]:
 def render_markdown(summary: dict, worst: list[dict], intent_acc: dict, meta: dict) -> str:
     cols = list(summary["mean"])
     lines = [
-        "# RAGAS baseline",
+        f"# {meta.get('title', 'RAGAS baseline')}",
         "",
         f"Judge/LLM: `{meta['model']}` · RAGAS-evaluated questions: {meta['n']}",
         "",
