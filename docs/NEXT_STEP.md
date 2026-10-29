@@ -14,9 +14,9 @@ Bộ đo truy hồi (25 câu, không gọi LLM):
 | all@5 | 28% | 36% | 40% | 40% | đạt vừa đúng ngưỡng (10 trên 25 câu) |
 | MRR | 0,371 | 0,376 | 0,404 | không đặt | tăng nhẹ |
 | any@5 nhóm combined (5 câu) | 0% | 40% | 80% | không đặt | tăng 2 câu |
-| độ trễ p50 mỗi lần truy hồi | 12 ms | khoảng 134 đến 149 ms | khoảng 171 đến 193 ms, dao động theo tải máy | thêm không quá 3 giây | đạt |
+| độ trễ p50 mỗi lần truy hồi | 12 ms | khoảng 134 đến 149 ms | khoảng 137 đến 193 ms giữa các lần chạy (lần control không viết lại cùng phiên: 179 ms); bản viết lại không thêm chi phí truy hồi | thêm không quá 3 giây | đạt |
 
-RAGAS đầy đủ trên cùng 25 câu, ba lần chạy: `ragas_baseline_dense` (baseline đã chú giải, vector thuần), `ragas_baseline_rerun` (chạy lại vector thuần) và `ragas_retrieval_v2` (cấu hình cuối).
+RAGAS đầy đủ trên cùng 25 câu, ba lần chạy: `ragas_baseline_dense` (baseline đã chú giải, vector thuần), `ragas_baseline_rerun` (chạy lại vector thuần) và `ragas_retrieval_v2` (reranker, chưa viết lại truy vấn).
 
 | Chỉ số | baseline_dense | baseline_rerun | retrieval_v2 |
 |---|---|---|---|
@@ -25,7 +25,7 @@ RAGAS đầy đủ trên cùng 25 câu, ba lần chạy: `ragas_baseline_dense` 
 | context recall | 0,387 | 0,420 | 0,400 |
 | answer relevancy | 0,687 | 0,665 | 0,766 |
 
-Cách đọc đúng các số này. Precision tăng và relevancy tăng, phần lớn relevancy đến từ việc ít câu bị từ chối hơn. Faithfulness và recall không đổi trong phạm vi nhiễu: hai lần chạy vector thuần lệch nhau 0,02 đến 0,03, nên các chênh lệch ở RAGAS chưa đủ để kết luận. Về từng câu, q03 và q21 nay lấy được bằng chứng và trả lời đúng (209,586 và 416,161), q04 tệ đi (recall từ 1,0 xuống 0,0), còn q05, q04 và q24 vẫn thiếu bằng chứng trong ngữ cảnh. Phần lợi chắc chắn nhất là bộ đo truy hồi: +16 điểm any@5 trên 25 câu là 4 câu, một con số mỏng.
+Cách đọc đúng các số này. Precision tăng và relevancy tăng, phần lớn relevancy đến từ việc ít câu bị từ chối hơn. Faithfulness và recall không đổi trong phạm vi nhiễu: hai lần chạy vector thuần lệch nhau 0,02 đến 0,03, nên các chênh lệch ở RAGAS chưa đủ để kết luận. Về từng câu, q03 và q21 nay lấy được bằng chứng và trả lời đúng (209,586 và 416,161), q04 tệ đi (recall từ 1,0 xuống 0,0), còn q05 và q04 vẫn thiếu bằng chứng trong ngữ cảnh. q24 thiếu bằng chứng ở bốn lần chạy cũ và được bản viết lại sửa (xem phần viết lại truy vấn bên dưới); q22 vẫn thiếu ở mọi lần. Phần lợi chắc chắn nhất là bộ đo truy hồi: +16 điểm any@5 trên 25 câu là 4 câu, một con số mỏng.
 
 Bảy câu còn trượt ở top-5 trong cấu hình cuối (đã có bản viết lại cho câu `both`), kèm hạng của từng nhóm bằng chứng: q04 [7], q05 [12], q10 [13], q11 [None, None], q15 [7, None], q16 [15, 13, 20], q22 [None, None]. `None` nghĩa là không có chunk bằng chứng nào trong 30 ứng viên. Trước khi viết lại có chín câu: q24 [10, 12] và q25 [None, None] đã vào top-5.
 
@@ -50,6 +50,10 @@ Nhóm combined: recall từ 0,267 và 0,200 lên 0,333 và 0,533, precision từ
 
 Kết luận trung thực. Ba tiêu chí của spec đều đạt và hai mục tiêu của bộ đo nay đạt, nhưng chúng đạt với biên rất mỏng. any@5 hơn ngưỡng 2 điểm, all@5 bằng đúng ngưỡng, và cả hai nhờ 5 câu `both` (hai câu đổi hạng đủ để đổi any@5, một câu đổi all@5). Nhiễu giữa hai lần chạy của cấu hình mới (recall 0,04, faithfulness 0,023) lớn hơn của cấu hình cũ, nên trong RAGAS chỉ precision (cao hơn khoảng 0,03) là thay đổi thật; recall (+0,03) và relevancy (+0,02) nằm trong nhiễu. Ở mức từng câu, q24 từ "không so sánh được" sang nêu cả hai doanh thu là cải thiện thật. q22 vẫn thiếu bằng chứng và q23 có recall 0,0 ở mọi lần chạy vì chunk vàng `NVDA-2026-7-012` không được lấy về. Bản viết lại do LLM tạo nên có thể khác giữa các lần chạy; bảng đã lưu chỉ phát lại một lần.
 
+Về q24, với bản viết lại danh sách chunk của hai lần mới đúng bằng top-5 của từng ticker: nhóm Apple khớp bằng `AAPL-2025-8-023` và nhóm Microsoft khớp bằng `MSFT-2026-7-020`, cùng hạng 4. Câu trả lời nay nêu cả 416,161 và 331,839 (relevancy 0,95 và 0,94, so với 0,00 ở cả hai lần cũ). Recall chỉ là 0,50 và 0,67 dù cả hai nhóm đều có mặt; lý do có thể là ground truth dẫn thêm chunk khác và có phần về giá mà ngữ cảnh 10-K không chứa, chưa kiểm tra.
+
+Về nhiễu, một điều cần thêm. Router lưu cache phản hồi theo tin nhắn hội thoại và schema công cụ, và khóa cache không gồm prompt hệ thống lẫn temperature (thí nghiệm trực tiếp ngày 2026-10-29: cùng tin nhắn người dùng với hai prompt hệ thống khác nhau trả về câu trả lời đầu tiên trong 0,02 giây; lời gọi có schema nhưng không có tin nhắn hệ thống, hoặc với temperature 0,9, cũng trúng cache; lời gọi thường không có schema thì không). Vì thế các lần chạy RAGAS sau có thể phát lại đầu ra model đã lưu cho câu từng hỏi: trong các báo cáo đã lưu, 23 trên 30 câu trả lời giống hệt từng byte giữa `ragas_demo_check` và `ragas_both_rewrite_1`, 7 trên 30 giữa `ragas_both_rewrite_1` và `ragas_both_rewrite_2`, 5 trên 30 giữa `ragas_retrieval_v2` và `ragas_demo_check`. Các mức nhiễu nêu ở trên (0,02 và 0,04) vì thế là cận dưới và có thể thấp hơn nhiễu thật.
+
 ## Các hướng còn lại
 
 Mỗi hướng dưới đây bám vào một quan sát cụ thể. Cách đo luôn giống nhau: chạy lại `uv run python -m eval.retrieval_eval --label "..."` (thêm `--rewrites reports/query_rewrites.json` để dùng bản viết lại đã lưu) rồi một lần RAGAS đầy đủ (`uv run python -m eval.run_ragas --tag <tên>`), và so với các bảng ở trên. Khi so RAGAS, chênh lệch dưới 0,03 ở faithfulness hoặc recall nằm trong nhiễu đã đo (với cấu hình có bản viết lại, nhiễu của recall là 0,04), nên cần chạy mỗi cấu hình ít nhất hai lần.
@@ -65,14 +69,15 @@ Mỗi hướng dưới đây bám vào một quan sát cụ thể. Cách đo lu�
 
 ## Hạng mục tồn đọng cũ còn áp dụng
 
-- Cache của router làm `CLASSIFY_SYSTEM` khó sửa an toàn. Router lưu cache phản hồi của bộ phân loại theo tin nhắn người dùng, nên khi đổi prompt hệ thống, phản hồi cũ vẫn được trả mà không báo gì. Điều này đã xảy ra khi thêm luật viết lại, và chỉ hết khi tin nhắn người dùng đổi thành `QUESTION (v2)` (`src/finassist/chains.py`, hàm `classify`). Hiện chỉ có quy ước ghi trong tài liệu là phải tăng hậu tố này mỗi lần sửa prompt. Việc cần làm: gắn mã băm ngắn của `CLASSIFY_SYSTEM` vào tin nhắn người dùng (ví dụ `QUESTION (<hash>)`) để cache tự đổi theo prompt, kèm một unit test kiểm tra rằng sửa prompt làm tin nhắn đổi. Kiểm chứng: sửa một chữ trong prompt rồi chạy `tests/test_both_rewrite.py` với router phải thấy kết quả mới.
+- Cache của router làm `CLASSIFY_SYSTEM` khó sửa an toàn. Router lưu cache phản hồi theo tin nhắn hội thoại và schema công cụ; khóa không gồm prompt hệ thống và không gồm temperature (đã kiểm bằng thí nghiệm trực tiếp ngày 2026-10-29). Khi đổi prompt hệ thống, phản hồi cũ cho câu đã hỏi vẫn được trả mà không báo gì. Điều này đã xảy ra khi thêm luật viết lại, và chỉ hết khi tin nhắn người dùng đổi thành `QUESTION (v2)` (`src/finassist/chains.py`, hàm `classify`). Hiện chỉ có quy ước ghi trong tài liệu là phải tăng hậu tố này mỗi lần sửa prompt. Việc cần làm: gắn mã băm ngắn của `CLASSIFY_SYSTEM` vào tin nhắn người dùng (ví dụ `QUESTION (<hash>)`) để cache tự đổi theo prompt, kèm một unit test kiểm tra rằng sửa prompt làm tin nhắn đổi. Kiểm chứng: sửa một chữ trong prompt rồi chạy `tests/test_both_rewrite.py` với router phải thấy kết quả mới.
 
 - MSFT diluted EPS: lần chạy live đầu tiên cho `eps = null` vì retrieval miss. Chưa đo lại riêng câu này với cấu hình mới.
 - Numeric sanity là 7/10 ở `retrieval_v2`, bằng baseline.
 - Câu hỏi tiếng Việt: đã giảm thiểu bằng `search_query` tiếng Anh, nhưng embedding và reranker đều chỉ có tiếng Anh, và câu về bảng Item 8 ("Lợi nhuận ròng của Microsoft") vẫn dễ retrieve hụt. Hướng thử: embedding đa ngôn ngữ.
 - `answer_relevancy = 0.0` với câu từ chối hoặc hedge là artifact của RAGAS. Số câu như vậy đã giảm ở `retrieval_v2`, nhưng chưa có cách đo khác, nên một phần mức tăng relevancy là do ít từ chối hơn chứ chưa chắc câu trả lời hay hơn.
 - Judge cùng model với app (tự chấm): thử judge khác model nếu có.
-- LLM chạy ở `temperature=0` (`src/finassist/chains.py:50`), nên lần thử lại trong `generate_answer` có thể cho đúng câu trả lời cũ. Chưa có phép đo cho thấy lần thử thứ hai cải thiện được gì.
+- LLM chạy ở `temperature=0` (`src/finassist/chains.py:50`), nên lần thử lại trong `generate_answer` có thể cho đúng câu trả lời cũ. Lý do mạnh hơn là cache của router: lần thử lại gửi đúng các tin nhắn cũ, và khóa cache không gồm temperature, nên khi câu trả lời cache còn được phát lại thì lần thử lại chắc chắn trả về cùng câu đó. Chưa có phép đo cho thấy lần thử thứ hai cải thiện được gì.
+- Làm cache bền hơn: đưa mã băm của prompt hệ thống vào tin nhắn người dùng, cho cả `classify` và `generate_answer` (mục `CLASSIFY_SYSTEM` ở trên mới nói về `classify`). Sau đó đo nhiễu giữa các lần chạy với cache bị bỏ qua, vì các ước lượng nhiễu hiện có chỉ là cận dưới; cần chạy RAGAS ít nhất hai lần với cache tắt hoặc với khóa khác nhau mỗi lần.
 - Ảnh chụp trace LangSmith (`docs/evidence/trace_tree.png`) chưa có, vì UI cần đăng nhập. Người có quyền truy cập có thể mở URL trong `docs/evidence/links.md` và chụp.
 
 ## Đã làm trong đợt gia cố

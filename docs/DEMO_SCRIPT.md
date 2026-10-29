@@ -38,7 +38,7 @@ Ghi chú khi demo:
 | Streamlit không lên | Dùng CLI `finassist ask` hoặc `--replay` |
 | Hỏi số liệu khác với kỳ vọng | Chỉ vào citation và `reports/retrieval_experiments.md`: lỗi retrieval đã biết (7 trên 25 câu vẫn trượt top-5); thường hệ thống hedge, nhưng ở baseline q10/q20 đã trả một con số sai có nguồn (139,297), nên hãy nói thẳng điều này |
 | Không có mạng (model reranker đã có trong cache) | Đặt `HF_HUB_OFFLINE=1` cùng với `FINASSIST_PRICE_OFFLINE=1`. Khi mạng tắt mà thiếu biến này, việc nạp model mất khoảng 29 giây; có biến này chỉ khoảng 6 giây (đo một lần trên một máy, nên chỉ là số tham khảo). Nếu model reranker chưa có trong cache, ứng dụng ghi một cảnh báo và dùng top-5 vector thuần. Câu filing đầu tiên, khi không có cache lẫn mạng, vẫn có thể phải chờ lần tải model hết thời gian, đo được khoảng 50 giây một lần |
-| Bộ phân loại trả kết quả như cũ sau khi sửa `CLASSIFY_SYSTEM` | Router lưu cache phản hồi theo tin nhắn người dùng. Tăng hậu tố `QUESTION (v2)` trong `chains.py:123` (v3, v4, ...) rồi chạy lại; đừng sửa prompt ngay trước giờ demo |
+| Bộ phân loại trả kết quả như cũ sau khi sửa `CLASSIFY_SYSTEM` | Router lưu cache phản hồi theo tin nhắn người dùng, không theo prompt hệ thống (lần thử lại cũng nhận lại câu trả lời cache). Tăng hậu tố `QUESTION (v2)` trong `chains.py:123` (v3, v4, ...) rồi chạy lại; đừng sửa prompt ngay trước giờ demo |
 | Câu filing đầu tiên rất chậm | Model reranker đang được tải và nạp. Chờ, hoặc chuyển sang Replay; lần sau sẽ nhanh |
 
 Tạo lại bản ghi: `uv run finassist ask "..." --record runs/demo.json` (cần router).
