@@ -24,4 +24,5 @@ packages = ["src/finassist"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 markers = ["integration: needs router/network, run with RUN_INTEGRATION=1"]
