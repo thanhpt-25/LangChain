@@ -1,4 +1,6 @@
-from finassist.postprocess import MARKER_RE, extract_citations, ground_numbers
+import time
+
+from finassist.postprocess import MARKER_RE, extract_citations, ground_numbers, marker_ids
 from finassist.schemas import Chunk, FinanceAnswer, Money
 
 
@@ -137,3 +139,27 @@ def test_extract_citations_handles_multi_id_and_filters_hallucinated():
     cites = extract_citations(f"x [{A}, MSFT-2025-7-099, {B}]", chunks)
     assert [c.chunk_id for c in cites] == [A, B]
     assert extract_citations("x [MSFT-2025-7-099, MSFT-2025-7-098]", chunks) == []
+
+
+A_ID = "AAPL-2025-8-001"
+
+
+def test_marker_ids_nested_brackets_keep_inner_citation():
+    assert marker_ids(f"[[{A_ID}]]") == [A_ID]
+    assert marker_ids(f"[Note: [{A_ID}]]") == [A_ID]
+
+
+def test_marker_ids_stray_open_bracket_before_marker():
+    assert marker_ids(f"[approx 5 [{A_ID}]") == [A_ID]
+
+
+def test_marker_ids_group_unchanged():
+    b = "NVDA-2026-7A-012"
+    assert marker_ids(f"[{A_ID}, {b}]") == [A_ID, b]
+
+
+def test_marker_ids_is_linear_on_many_unclosed_brackets():
+    text = "[x " * 20000
+    start = time.perf_counter()
+    assert marker_ids(text) == []
+    assert time.perf_counter() - start < 0.5

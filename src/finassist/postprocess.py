@@ -6,7 +6,7 @@ from finassist.schemas import Chunk, Citation, FinanceAnswer
 
 ID_RE = re.compile(r"[A-Z]+-\d{4}-[0-9A-Z]+-\d{3}")
 MARKER_RE = re.compile(rf"\[({ID_RE.pattern})\]")  # single-id marker, kept for existing callers
-_BRACKET_RE = re.compile(r"\[([^\]]+)\]")
+_BRACKET_RE = re.compile(r"\[([^\[\]]+)\]")  # no inner "[": keeps scanning linear and finds the innermost group
 _SEPARATORS_RE = re.compile(r"[,;\s]+|\b(?:và|and)\b")
 
 
