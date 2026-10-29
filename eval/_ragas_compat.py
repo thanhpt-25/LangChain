@@ -14,8 +14,9 @@ def _stub(name: str, **attrs) -> None:
     try:
         __import__(name)
         return
-    except ImportError:
-        pass
+    except ModuleNotFoundError as e:
+        if e.name != name:  # the module exists but one of its own imports failed: surface that
+            raise
     mod = types.ModuleType(name)
     for k, v in attrs.items():
         setattr(mod, k, v)

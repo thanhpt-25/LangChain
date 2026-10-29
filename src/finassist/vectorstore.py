@@ -39,6 +39,8 @@ class FilingStore:
         )
 
     def search(self, query: str, ticker: str, k: int = 5) -> list[Chunk]:
+        """Top-k chunks for `ticker`. `Chunk.score` is the Chroma distance (squared L2 on the
+        normalised embeddings): lower means closer, it is not a similarity."""
         results = self._db.similarity_search_with_score(query, k=k, filter={"ticker": ticker})
         return [
             Chunk(
