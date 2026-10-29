@@ -86,6 +86,10 @@ def _cmd_ask(question: str, record: str | None, replay: str | None) -> None:
             Path(record).write_text(json.dumps(rec, indent=2, ensure_ascii=False), encoding="utf-8")
     except Exception as e:  # noqa: BLE001 - CLI boundary: one readable line instead of a traceback
         msg = " ".join(str(e).split())
+        from finassist.retrieval import EmptyStoreError
+
+        if isinstance(e, EmptyStoreError):
+            _fail(f"error: {msg}")
         _fail(f"error: {type(e).__name__}: {msg} (is the LLM router up and are the models available offline? try --replay runs/demo.json)")
     print(render_record(rec))
 

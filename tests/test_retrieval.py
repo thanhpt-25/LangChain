@@ -102,3 +102,63 @@ def test_make_retriever_falls_back_to_dense_when_reranker_cannot_load(monkeypatc
 def test_make_retriever_rejects_unknown_mode():
     with pytest.raises(ValueError):
         make_retriever(replace(get_settings(), retrieval_mode="sparse"), FakeStore([]))
+
+
+class CountingStore(FakeStore):
+    def __init__(self, n):
+        super().__init__([])
+        self._n = n
+
+    def count(self):
+        return self._n
+
+
+def _settings():
+    return replace(get_settings(), reranker="none")
+
+
+def test_make_retriever_raises_on_empty_store():
+    from finassist.retrieval import EmptyStoreError
+
+    with pytest.raises(EmptyStoreError, match="uv run finassist ingest") as e:
+        make_retriever(_settings(), CountingStore(0))
+    assert isinstance(e.value, RuntimeError)
+    assert "The filings store is empty. Build it first" in str(e.value)
+
+
+def test_make_retriever_works_with_non_empty_store_and_without_count():
+    assert isinstance(make_retriever(_settings(), CountingStore(3)), Retriever)
+    assert isinstance(make_retriever(_settings(), FakeStore([])), Retriever)
+
+
+def test_empty_store_error_is_raised_before_the_scorer_is_built(monkeypatch):
+    from finassist.retrieval import EmptyStoreError
+
+    def no_scorer(name):
+        raise AssertionError("scorer must not be built for an empty store")
+
+    monkeypatch.setattr("finassist.retrieval.make_scorer", no_scorer)
+    with pytest.raises(EmptyStoreError):
+        make_retriever(replace(get_settings(), reranker="cross-encoder/x"), CountingStore(0))
+
+
+def test_make_deps_retrieve_raises_for_empty_real_store(tmp_path):
+    from types import SimpleNamespace
+
+    from langchain_core.embeddings import DeterministicFakeEmbedding
+
+    from finassist.chains import make_deps
+    from finassist.retrieval import EmptyStoreError
+    from finassist.vectorstore import FilingStore
+
+    store = FilingStore(tmp_path / "chroma", DeterministicFakeEmbedding(size=32))
+    settings = SimpleNamespace(cache_dir=tmp_path, price_offline=True, price_timeout=8.0, retrieval_mode="dense",
+                               reranker="none", candidates=30, top_k=5)
+
+    class NoLLM:  # never invoked: only retrieval is exercised
+        def with_structured_output(self, *a, **k):
+            return None
+
+    deps = make_deps(settings, store, NoLLM())
+    with pytest.raises(EmptyStoreError, match="finassist ingest"):
+        deps.retrieve("q", ["AAPL"])

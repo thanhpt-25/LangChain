@@ -96,3 +96,23 @@ def test_ingest_accepts_rebuild_flag(monkeypatch):
     monkeypatch.setattr("sys.argv", ["finassist", "ingest"])
     cli.main()
     assert seen == {"rebuild": False}
+
+
+def test_empty_store_error_has_no_router_hint(capsys, monkeypatch):
+    import types
+
+    from finassist.retrieval import EmptyStoreError
+
+    fake = types.SimpleNamespace(
+        build_app=lambda: object(),
+        ask=lambda *a, **k: (_ for _ in ()).throw(EmptyStoreError("The filings store is empty. Build it first: uv run finassist ingest")),
+    )
+    monkeypatch.setitem(sys.modules, "finassist.runtime", fake)
+    monkeypatch.setattr("sys.argv", ["finassist", "ask", "q"])
+    with pytest.raises(SystemExit) as e:
+        main()
+    assert e.value.code == 1
+    err = capsys.readouterr().err
+    assert "uv run finassist ingest" in err
+    assert "router" not in err and "--replay" not in err
+    assert len(err.strip().splitlines()) == 1

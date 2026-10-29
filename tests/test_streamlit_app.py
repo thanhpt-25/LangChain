@@ -118,3 +118,19 @@ def test_citation_table_escapes_dollars_so_quotes_are_not_latex(monkeypatch, tmp
     cell = at.table[0].value.to_dict("records")[0]["quote"]
     assert "$" not in cell.replace("\\$", "")
     assert cell.count("\\$") == 2
+
+
+def test_empty_store_error_points_to_ingest_not_replay(monkeypatch, tmp_path):
+    from finassist.retrieval import EmptyStoreError
+
+    def fail(*a, **k):
+        raise EmptyStoreError("The filings store is empty. Build it first: uv run finassist ingest")
+
+    monkeypatch.setattr("finassist.runtime.build_app", lambda: object())
+    monkeypatch.setattr("finassist.runtime.ask", fail)
+    at = AppTest.from_file(APP, default_timeout=30).run()
+    at.button[0].click()
+    at.run()
+    assert not at.exception
+    assert any("uv run finassist ingest" in e.value for e in at.error)
+    assert not any("Replay recorded run" in c.value for c in at.caption)

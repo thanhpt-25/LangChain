@@ -51,6 +51,7 @@ if st.button("Ask") and question:
             "The question typed above is ignored."
         )
     else:
+        from finassist.retrieval import EmptyStoreError
         from finassist.runtime import ask
 
         try:
@@ -58,7 +59,8 @@ if st.button("Ask") and question:
                 rec = to_record(ask(get_app(), question, tags=["demo"]))
         except Exception as e:
             st.error(f"Live run failed: {type(e).__name__}: {e}")
-            st.caption("Tick 'Replay recorded run' in the sidebar to use the offline recording.")
+            if not isinstance(e, EmptyStoreError):
+                st.caption("Tick 'Replay recorded run' in the sidebar to use the offline recording.")
             st.stop()
         st.caption(f"Q: {question}")
     out = rec["output"]
