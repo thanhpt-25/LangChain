@@ -5,7 +5,16 @@
     "question": "What were Apple's total net sales in its most recent fiscal year?",
     "ticker": "AAPL",
     "expected_intent": "filing",
-    "ground_truth": "Apple's total net sales were $416,161 million in fiscal 2025, compared with $391,035 million in fiscal 2024 (AAPL-2025-7-005)."
+    "ground_truth": "Apple's total net sales were $416,161 million in fiscal 2025, compared with $391,035 million in fiscal 2024 (AAPL-2025-7-005).",
+    "evidence": [
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "416,161",
+          "Total net sales"
+        ]
+      }
+    ]
   },
   {
     "id": "q02",
@@ -13,7 +22,16 @@
     "question": "What was Apple's diluted earnings per share in its most recent fiscal year?",
     "ticker": "AAPL",
     "expected_intent": "filing",
-    "ground_truth": "Apple's diluted earnings per share were $7.46 in fiscal 2025, versus $6.08 in fiscal 2024 (AAPL-2025-8-002)."
+    "ground_truth": "Apple's diluted earnings per share were $7.46 in fiscal 2025, versus $6.08 in fiscal 2024 (AAPL-2025-8-002).",
+    "evidence": [
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "7.46",
+          "Diluted"
+        ]
+      }
+    ]
   },
   {
     "id": "q03",
@@ -21,7 +39,16 @@
     "question": "How much net sales did Apple's iPhone segment generate in its most recent fiscal year?",
     "ticker": "AAPL",
     "expected_intent": "filing",
-    "ground_truth": "iPhone net sales were $209,586 million in fiscal 2025, up 4% from $201,183 million in fiscal 2024 (AAPL-2025-7-006)."
+    "ground_truth": "iPhone net sales were $209,586 million in fiscal 2025, up 4% from $201,183 million in fiscal 2024 (AAPL-2025-7-006).",
+    "evidence": [
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "209,586",
+          "iPhone"
+        ]
+      }
+    ]
   },
   {
     "id": "q04",
@@ -29,7 +56,16 @@
     "question": "What was Microsoft's total revenue in its most recent fiscal year?",
     "ticker": "MSFT",
     "expected_intent": "filing",
-    "ground_truth": "Microsoft's total revenue was $331,839 million for the year ended June 30, 2026, compared with $281,724 million in the prior year (MSFT-2026-8-000)."
+    "ground_truth": "Microsoft's total revenue was $331,839 million for the year ended June 30, 2026, compared with $281,724 million in the prior year (MSFT-2026-8-000).",
+    "evidence": [
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "331,839",
+          "Total revenue"
+        ]
+      }
+    ]
   },
   {
     "id": "q05",
@@ -37,7 +73,16 @@
     "question": "What was Microsoft's net income in its most recent fiscal year?",
     "ticker": "MSFT",
     "expected_intent": "filing",
-    "ground_truth": "Microsoft's net income was $133,749 million for the year ended June 30, 2026, compared with $101,832 million in the prior year (MSFT-2026-8-001)."
+    "ground_truth": "Microsoft's net income was $133,749 million for the year ended June 30, 2026, compared with $101,832 million in the prior year (MSFT-2026-8-001).",
+    "evidence": [
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "133,749",
+          "Net income"
+        ]
+      }
+    ]
   },
   {
     "id": "q06",
@@ -45,7 +90,16 @@
     "question": "What was Microsoft's diluted earnings per share in its most recent fiscal year?",
     "ticker": "MSFT",
     "expected_intent": "filing",
-    "ground_truth": "Microsoft's diluted earnings per share were $17.95 for the year ended June 30, 2026, versus $13.64 in the prior year (MSFT-2026-8-001)."
+    "ground_truth": "Microsoft's diluted earnings per share were $17.95 for the year ended June 30, 2026, versus $13.64 in the prior year (MSFT-2026-8-001).",
+    "evidence": [
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "17.95",
+          "Diluted"
+        ]
+      }
+    ]
   },
   {
     "id": "q07",
@@ -53,7 +107,16 @@
     "question": "What was NVIDIA's total revenue in its most recent fiscal year?",
     "ticker": "NVDA",
     "expected_intent": "filing",
-    "ground_truth": "NVIDIA's revenue for fiscal year 2026 (ended Jan 25, 2026) was $215,938 million, up 65% from $130,497 million a year earlier (NVDA-2026-7-012)."
+    "ground_truth": "NVIDIA's revenue for fiscal year 2026 (ended Jan 25, 2026) was $215,938 million, up 65% from $130,497 million a year earlier (NVDA-2026-7-012).",
+    "evidence": [
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "215,938",
+          "Revenue"
+        ]
+      }
+    ]
   },
   {
     "id": "q08",
@@ -61,7 +124,16 @@
     "question": "What was NVIDIA's net income in its most recent fiscal year?",
     "ticker": "NVDA",
     "expected_intent": "filing",
-    "ground_truth": "NVIDIA's net income for fiscal year 2026 was $120,067 million, up 65% from $72,880 million a year earlier (NVDA-2026-7-012)."
+    "ground_truth": "NVIDIA's net income for fiscal year 2026 was $120,067 million, up 65% from $72,880 million a year earlier (NVDA-2026-7-012).",
+    "evidence": [
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "120,067",
+          "Net income"
+        ]
+      }
+    ]
   },
   {
     "id": "q09",
@@ -69,7 +141,16 @@
     "question": "What was NVIDIA's diluted earnings per share in its most recent fiscal year?",
     "ticker": "NVDA",
     "expected_intent": "filing",
-    "ground_truth": "NVIDIA's net income per diluted share for fiscal year 2026 was $4.90, up 67% from $2.94 a year earlier (NVDA-2026-7-012)."
+    "ground_truth": "NVIDIA's net income per diluted share for fiscal year 2026 was $4.90, up 67% from $2.94 a year earlier (NVDA-2026-7-012).",
+    "evidence": [
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "4.90",
+          "diluted"
+        ]
+      }
+    ]
   },
   {
     "id": "q10",
@@ -77,7 +158,16 @@
     "question": "How much revenue did NVIDIA's Data Center market platform generate in its most recent fiscal year?",
     "ticker": "NVDA",
     "expected_intent": "filing",
-    "ground_truth": "NVIDIA's Data Center revenue was $193,737 million in fiscal year 2026, compared with $115,186 million in fiscal year 2025 (NVDA-2026-15-141)."
+    "ground_truth": "NVIDIA's Data Center revenue was $193,737 million in fiscal year 2026, compared with $115,186 million in fiscal year 2025 (NVDA-2026-15-141).",
+    "evidence": [
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "193,737",
+          "Data Center"
+        ]
+      }
+    ]
   },
   {
     "id": "q11",
@@ -85,7 +175,21 @@
     "question": "What supply chain risks does Apple disclose in its 10-K?",
     "ticker": "AAPL",
     "expected_intent": "filing",
-    "ground_truth": "Apple says a significant majority of its manufacturing is performed by outsourcing partners located primarily in China mainland, India, Japan, South Korea, Taiwan and Vietnam, and that it relies on single-source partners to supply and manufacture many components (AAPL-2025-1A-026). It also notes that outsourcing reduces its direct control over production and distribution, which has at times adversely affected cost, quality or quantity of products, and that trade restrictions such as tariffs can materially adversely affect its supply chain (AAPL-2025-1A-005)."
+    "ground_truth": "Apple says a significant majority of its manufacturing is performed by outsourcing partners located primarily in China mainland, India, Japan, South Korea, Taiwan and Vietnam, and that it relies on single-source partners to supply and manufacture many components (AAPL-2025-1A-026). It also notes that outsourcing reduces its direct control over production and distribution, which has at times adversely affected cost, quality or quantity of products, and that trade restrictions such as tariffs can materially adversely affect its supply chain (AAPL-2025-1A-005).",
+    "evidence": [
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "relies on single-source partners"
+        ]
+      },
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "tariffs and other controls on imports"
+        ]
+      }
+    ]
   },
   {
     "id": "q12",
@@ -93,7 +197,27 @@
     "question": "What legal and regulatory risks around the App Store does Apple describe?",
     "ticker": "AAPL",
     "expected_intent": "filing",
-    "ground_truth": "Apple describes a U.S. court order preventing it from imposing any commission or fee on certain purchases consumers make through alternative purchasing mechanisms on the U.S. App Store storefront (AAPL-2025-1A-072). In the EU it has changed iOS, iPadOS and the App Store to comply with the Digital Markets Act, which provides for significant fines and penalties for noncompliance (AAPL-2025-1A-074), and it is the subject of investigations in Europe and other jurisdictions relating to App Store terms and conditions (AAPL-2025-1A-076)."
+    "ground_truth": "Apple describes a U.S. court order preventing it from imposing any commission or fee on certain purchases consumers make through alternative purchasing mechanisms on the U.S. App Store storefront (AAPL-2025-1A-072). In the EU it has changed iOS, iPadOS and the App Store to comply with the Digital Markets Act, which provides for significant fines and penalties for noncompliance (AAPL-2025-1A-074), and it is the subject of investigations in Europe and other jurisdictions relating to App Store terms and conditions (AAPL-2025-1A-076).",
+    "evidence": [
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "court order preventing it from imposing any commission"
+        ]
+      },
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "DMA provides for significant fines and penalties"
+        ]
+      },
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "investigations in Europe and other jurisdictions relating to App Store terms"
+        ]
+      }
+    ]
   },
   {
     "id": "q13",
@@ -101,7 +225,27 @@
     "question": "How does Apple say foreign currency fluctuations could affect its results?",
     "ticker": "AAPL",
     "expected_intent": "filing",
-    "ground_truth": "Apple says its primary foreign exchange exposure relates to non-U.S. dollar-denominated sales, cost of sales and operating expenses, and that gross margins on products in foreign countries and on products with foreign-sourced components have been and could be materially adversely affected by exchange rate fluctuations (AAPL-2025-1A-088). A weakening of foreign currencies relative to the U.S. dollar adversely affects the U.S. dollar value of foreign currency-denominated sales and earnings, and its hedging may not be effective to offset more than a portion of the adverse effects (AAPL-2025-1A-089, AAPL-2025-1A-090)."
+    "ground_truth": "Apple says its primary foreign exchange exposure relates to non-U.S. dollar-denominated sales, cost of sales and operating expenses, and that gross margins on products in foreign countries and on products with foreign-sourced components have been and could be materially adversely affected by exchange rate fluctuations (AAPL-2025-1A-088). A weakening of foreign currencies relative to the U.S. dollar adversely affects the U.S. dollar value of foreign currency-denominated sales and earnings, and its hedging may not be effective to offset more than a portion of the adverse effects (AAPL-2025-1A-089, AAPL-2025-1A-090).",
+    "evidence": [
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "primary exposure to movements in foreign exchange rates"
+        ]
+      },
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "weakening of foreign currencies relative to the U.S. dollar"
+        ]
+      },
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "may not be effective to offset any, or more than a portion"
+        ]
+      }
+    ]
   },
   {
     "id": "q14",
@@ -109,7 +253,27 @@
     "question": "What risks related to artificial intelligence does Microsoft disclose?",
     "ticker": "MSFT",
     "expected_intent": "filing",
-    "ground_truth": "Microsoft says it is making significant capital and operational investments in AI models and cloud services, including datacenters, in advance of fully developed revenue streams, so the associated revenue may not be realized in expected timeframes or at expected levels (MSFT-2026-1A-011). It states its AI models and training methodologies may be flawed, datasets may be biased or inaccurate, and AI-generated content may be offensive, illegal or inaccurate, which could give rise to reputational, competitive or legal harm (MSFT-2026-1A-069). It also cites evolving AI regulation such as the EU's AI Act that could increase costs or restrict opportunity (MSFT-2026-1A-093)."
+    "ground_truth": "Microsoft says it is making significant capital and operational investments in AI models and cloud services, including datacenters, in advance of fully developed revenue streams, so the associated revenue may not be realized in expected timeframes or at expected levels (MSFT-2026-1A-011). It states its AI models and training methodologies may be flawed, datasets may be biased or inaccurate, and AI-generated content may be offensive, illegal or inaccurate, which could give rise to reputational, competitive or legal harm (MSFT-2026-1A-069). It also cites evolving AI regulation such as the EU's AI Act that could increase costs or restrict opportunity (MSFT-2026-1A-093).",
+    "evidence": [
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "in advance of fully developed revenue streams"
+        ]
+      },
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "methodologies used to train them may be flawed"
+        ]
+      },
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "AI Act may increase costs"
+        ]
+      }
+    ]
   },
   {
     "id": "q15",
@@ -117,7 +281,21 @@
     "question": "What cybersecurity risks does Microsoft describe in its 10-K?",
     "ticker": "MSFT",
     "expected_intent": "filing",
-    "ground_truth": "Microsoft says security threats are a significant challenge, that threats to or attacks on its own infrastructure, such as a nation-state attack described in a prior risk factor, have also affected its customers, and that adversaries focus on the most popular operating systems, programs and services, including many of Microsoft's (MSFT-2026-1A-045). It adds that adversaries can exploit zero-day vulnerabilities and that product vulnerabilities can persist after patches are issued if customers have not installed updates, including where attackers may use artificial intelligence to reconstruct and exploit them (MSFT-2026-1A-046)."
+    "ground_truth": "Microsoft says security threats are a significant challenge, that threats to or attacks on its own infrastructure, such as a nation-state attack described in a prior risk factor, have also affected its customers, and that adversaries focus on the most popular operating systems, programs and services, including many of Microsoft's (MSFT-2026-1A-045). It adds that adversaries can exploit zero-day vulnerabilities and that product vulnerabilities can persist after patches are issued if customers have not installed updates, including where attackers may use artificial intelligence to reconstruct and exploit them (MSFT-2026-1A-046).",
+    "evidence": [
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "nation-state attack described in the prior risk factor"
+        ]
+      },
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "Product vulnerabilities can persist even after we have issued security patches"
+        ]
+      }
+    ]
   },
   {
     "id": "q16",
@@ -125,7 +303,27 @@
     "question": "What competitive risks does Microsoft identify?",
     "ticker": "MSFT",
     "expected_intent": "filing",
-    "ground_truth": "Microsoft says its competitors range from diversified global companies to small specialized firms, that barriers to entry in many of its businesses are low, and that if it does not continue to innovate it may not remain competitive (MSFT-2026-1A-001). It notes competition from vertically-integrated competitors and from competing platforms for new types of devices such as smartphones and tablets that could make it harder to attract application developers to its PC operating system platforms (MSFT-2026-1A-003, MSFT-2026-1A-004), and that AI is a highly competitive, rapidly evolving market where it competes with hyperscalers, open-source offerings and frontier model providers (MSFT-2026-1A-007)."
+    "ground_truth": "Microsoft says its competitors range from diversified global companies to small specialized firms, that barriers to entry in many of its businesses are low, and that if it does not continue to innovate it may not remain competitive (MSFT-2026-1A-001). It notes competition from vertically-integrated competitors and from competing platforms for new types of devices such as smartphones and tablets that could make it harder to attract application developers to its PC operating system platforms (MSFT-2026-1A-003, MSFT-2026-1A-004), and that AI is a highly competitive, rapidly evolving market where it competes with hyperscalers, open-source offerings and frontier model providers (MSFT-2026-1A-007).",
+    "evidence": [
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "Barriers to entry in many of our businesses are low"
+        ]
+      },
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "competing platforms developed for new types of devices"
+        ]
+      },
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "hyperscalers, open-source offerings, and frontier model providers"
+        ]
+      }
+    ]
   },
   {
     "id": "q17",
@@ -133,7 +331,27 @@
     "question": "How do export controls affect NVIDIA's business according to its 10-K?",
     "ticker": "NVDA",
     "expected_intent": "filing",
-    "ground_truth": "NVIDIA says the United States has imposed unilateral worldwide controls restricting GPUs and associated products, that further controls are likely and may be very broad, could prohibit exports to any or all customers in one or more markets, and could negatively and materially impact its business, revenue and financial results (NVDA-2026-1A-104). It also says export controls have and could disrupt its supply chain and distribution channels, and that the possibility of additional controls has reduced demand and may benefit competitors offering alternatives less likely to be restricted (NVDA-2026-1A-107), and that reduced demand due to export controls could lead to excess inventory or related supply charges (NVDA-2026-1A-108)."
+    "ground_truth": "NVIDIA says the United States has imposed unilateral worldwide controls restricting GPUs and associated products, that further controls are likely and may be very broad, could prohibit exports to any or all customers in one or more markets, and could negatively and materially impact its business, revenue and financial results (NVDA-2026-1A-104). It also says export controls have and could disrupt its supply chain and distribution channels, and that the possibility of additional controls has reduced demand and may benefit competitors offering alternatives less likely to be restricted (NVDA-2026-1A-107), and that reduced demand due to export controls could lead to excess inventory or related supply charges (NVDA-2026-1A-108).",
+    "evidence": [
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "unilateral worldwide controls restricting GPUs"
+        ]
+      },
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "disrupt our supply chain and distribution channels"
+        ]
+      },
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "excess inventory or cause us to incur related supply charges"
+        ]
+      }
+    ]
   },
   {
     "id": "q18",
@@ -141,7 +359,27 @@
     "question": "What manufacturing and supply dependency risks does NVIDIA disclose?",
     "ticker": "NVDA",
     "expected_intent": "filing",
-    "ground_truth": "NVIDIA says it depends on foundries to manufacture its semiconductor wafers and on independent subcontractors to assemble, test and package its products, which reduces its control over product quantity and quality, manufacturing yields and delivery schedules (NVDA-2026-1A-031). The listed risks include lack of guaranteed supply of components and capacity, decommitment by suppliers, and limited number and geographic concentration of suppliers, foundries and memory manufacturers (NVDA-2026-1A-032), as well as non-cancellable orders or prepayment requirements and low manufacturing yields (NVDA-2026-1A-033, NVDA-2026-1A-034)."
+    "ground_truth": "NVIDIA says it depends on foundries to manufacture its semiconductor wafers and on independent subcontractors to assemble, test and package its products, which reduces its control over product quantity and quality, manufacturing yields and delivery schedules (NVDA-2026-1A-031). The listed risks include lack of guaranteed supply of components and capacity, decommitment by suppliers, and limited number and geographic concentration of suppliers, foundries and memory manufacturers (NVDA-2026-1A-032), as well as non-cancellable orders or prepayment requirements and low manufacturing yields (NVDA-2026-1A-033, NVDA-2026-1A-034).",
+    "evidence": [
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "depend on foundries to manufacture our semiconductor wafers"
+        ]
+      },
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "limited number and geographic concentration of global suppliers"
+        ]
+      },
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "low manufacturing yields resulting from issues in our product design"
+        ]
+      }
+    ]
   },
   {
     "id": "q19",
@@ -149,7 +387,27 @@
     "question": "What does NVIDIA say about customer concentration risk?",
     "ticker": "NVDA",
     "expected_intent": "filing",
-    "ground_truth": "NVIDIA says it receives a significant amount of its revenue from a limited number of partners and distributors and that its revenue could be adversely affected if it loses or is prevented from selling to any of these customers (NVDA-2026-1A-078). For fiscal year 2026, sales to one direct customer represented 22% of total revenue and sales to another direct customer represented 14% of total revenue, and because most sales are made on a purchase order basis, customers can generally cancel, change or delay purchase commitments with little notice and without penalty (NVDA-2026-1A-079, NVDA-2026-1A-080)."
+    "ground_truth": "NVIDIA says it receives a significant amount of its revenue from a limited number of partners and distributors and that its revenue could be adversely affected if it loses or is prevented from selling to any of these customers (NVDA-2026-1A-078). For fiscal year 2026, sales to one direct customer represented 22% of total revenue and sales to another direct customer represented 14% of total revenue, and because most sales are made on a purchase order basis, customers can generally cancel, change or delay purchase commitments with little notice and without penalty (NVDA-2026-1A-079, NVDA-2026-1A-080).",
+    "evidence": [
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "limited number of partners and distributors"
+        ]
+      },
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "one direct customer represented 22% of total revenue"
+        ]
+      },
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "cancel, change, or delay product purchase commitments"
+        ]
+      }
+    ]
   },
   {
     "id": "q20",
@@ -157,7 +415,28 @@
     "question": "What did NVIDIA's MD&A give as the main drivers of revenue change in its most recent fiscal year?",
     "ticker": "NVDA",
     "expected_intent": "filing",
-    "ground_truth": "NVIDIA's MD&A says revenue growth in fiscal year 2026 was driven by data center compute and networking platforms for accelerated computing and AI solutions, with Blackwell architectures representing the majority of Data Center revenue (NVDA-2026-7-002). Revenue grew 65% to $215,938 million, and Data Center computing revenue grew 59% on Blackwell demand while Data Center networking revenue grew 142% on the ramp of NVLink compute fabric for GB200 and GB300 systems and growth of Ethernet and InfiniBand (NVDA-2026-7-012, NVDA-2026-7-029)."
+    "ground_truth": "NVIDIA's MD&A says revenue growth in fiscal year 2026 was driven by data center compute and networking platforms for accelerated computing and AI solutions, with Blackwell architectures representing the majority of Data Center revenue (NVDA-2026-7-002). Revenue grew 65% to $215,938 million, and Data Center computing revenue grew 59% on Blackwell demand while Data Center networking revenue grew 142% on the ramp of NVLink compute fabric for GB200 and GB300 systems and growth of Ethernet and InfiniBand (NVDA-2026-7-012, NVDA-2026-7-029).",
+    "evidence": [
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "Blackwell architectures represented the majority of our Data Center revenue"
+        ]
+      },
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "Data Center networking grew 142%"
+        ]
+      },
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "215,938",
+          "Up 65%"
+        ]
+      }
+    ]
   },
   {
     "id": "q21",
@@ -165,7 +444,16 @@
     "question": "What is Apple's current stock price, and what were its total net sales last fiscal year?",
     "ticker": "AAPL",
     "expected_intent": "both",
-    "ground_truth": "Apple's total net sales were $416,161 million in fiscal 2025 (AAPL-2025-7-005). Stock price/market data are provided by the price tool."
+    "ground_truth": "Apple's total net sales were $416,161 million in fiscal 2025 (AAPL-2025-7-005). Stock price/market data are provided by the price tool.",
+    "evidence": [
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "416,161",
+          "Total net sales"
+        ]
+      }
+    ]
   },
   {
     "id": "q22",
@@ -173,7 +461,21 @@
     "question": "What is Microsoft's current P/E ratio, and what is its biggest competitive risk?",
     "ticker": "MSFT",
     "expected_intent": "both",
-    "ground_truth": "Microsoft's 10-K says barriers to entry in many of its businesses are low and that if it does not continue to innovate it may not remain competitive (MSFT-2026-1A-001), and that AI is a highly competitive and rapidly evolving market where it competes with hyperscalers, open-source offerings and frontier model providers (MSFT-2026-1A-007). The filing does not rank a single biggest risk. Stock price/market data are provided by the price tool."
+    "ground_truth": "Microsoft's 10-K says barriers to entry in many of its businesses are low and that if it does not continue to innovate it may not remain competitive (MSFT-2026-1A-001), and that AI is a highly competitive and rapidly evolving market where it competes with hyperscalers, open-source offerings and frontier model providers (MSFT-2026-1A-007). The filing does not rank a single biggest risk. Stock price/market data are provided by the price tool.",
+    "evidence": [
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "Barriers to entry in many of our businesses are low"
+        ]
+      },
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "hyperscalers, open-source offerings, and frontier model providers"
+        ]
+      }
+    ]
   },
   {
     "id": "q23",
@@ -181,7 +483,16 @@
     "question": "What is NVIDIA's market capitalization now, and what was its total revenue last fiscal year?",
     "ticker": "NVDA",
     "expected_intent": "both",
-    "ground_truth": "NVIDIA's revenue for fiscal year 2026 was $215,938 million, up 65% from $130,497 million a year earlier (NVDA-2026-7-012). Stock price/market data are provided by the price tool."
+    "ground_truth": "NVIDIA's revenue for fiscal year 2026 was $215,938 million, up 65% from $130,497 million a year earlier (NVDA-2026-7-012). Stock price/market data are provided by the price tool.",
+    "evidence": [
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "215,938",
+          "Revenue"
+        ]
+      }
+    ]
   },
   {
     "id": "q24",
@@ -189,7 +500,23 @@
     "question": "Compare Apple's and Microsoft's latest annual revenue and tell me both current stock prices.",
     "ticker": "AAPL",
     "expected_intent": "both",
-    "ground_truth": "Apple's total net sales were $416,161 million in fiscal 2025 (AAPL-2025-7-005), while Microsoft's total revenue was $331,839 million for the year ended June 30, 2026 (MSFT-2026-8-000). Stock price/market data are provided by the price tool."
+    "ground_truth": "Apple's total net sales were $416,161 million in fiscal 2025 (AAPL-2025-7-005), while Microsoft's total revenue was $331,839 million for the year ended June 30, 2026 (MSFT-2026-8-000). Stock price/market data are provided by the price tool.",
+    "evidence": [
+      {
+        "ticker": "AAPL",
+        "contains": [
+          "416,161",
+          "Total net sales"
+        ]
+      },
+      {
+        "ticker": "MSFT",
+        "contains": [
+          "331,839",
+          "Total revenue"
+        ]
+      }
+    ]
   },
   {
     "id": "q25",
@@ -197,7 +524,21 @@
     "question": "What is NVIDIA's current stock price and how do export controls threaten it?",
     "ticker": "NVDA",
     "expected_intent": "both",
-    "ground_truth": "NVIDIA says the United States has imposed unilateral worldwide controls restricting GPUs and that additional controls could prohibit exports to any or all customers in one or more markets and negatively and materially impact its business, revenue and financial results (NVDA-2026-1A-104). Export controls have and could disrupt its supply chain and distribution channels, and the possibility of additional controls has negatively impacted demand for its products (NVDA-2026-1A-107). Stock price/market data are provided by the price tool."
+    "ground_truth": "NVIDIA says the United States has imposed unilateral worldwide controls restricting GPUs and that additional controls could prohibit exports to any or all customers in one or more markets and negatively and materially impact its business, revenue and financial results (NVDA-2026-1A-104). Export controls have and could disrupt its supply chain and distribution channels, and the possibility of additional controls has negatively impacted demand for its products (NVDA-2026-1A-107). Stock price/market data are provided by the price tool.",
+    "evidence": [
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "unilateral worldwide controls restricting GPUs"
+        ]
+      },
+      {
+        "ticker": "NVDA",
+        "contains": [
+          "disrupt our supply chain and distribution channels"
+        ]
+      }
+    ]
   },
   {
     "id": "q26",
