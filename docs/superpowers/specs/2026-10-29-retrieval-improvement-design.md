@@ -109,9 +109,9 @@ Giai đoạn bị loại vẫn ghi vào báo cáo cùng số đo, để người
 
 ## 6. Tiêu chí thành công
 
-Chốt các con số sau khi giai đoạn 0 cho số baseline thật. Mục tiêu đề xuất:
+Giai đoạn 0 đã cho số baseline thật (`reports/retrieval_experiments.md`): any@5 là 48%, all@5 là 28%, MRR 0,371, p50 12 ms. Các số 24% và 8% ở phép đo cũ thấp hơn vì phép đo cũ đòi đúng chunk id vàng, còn bộ đo mới chấp nhận mọi chunk chứa chuỗi bằng chứng (với câu số liệu có 6 đến 7 chunk như vậy), nên hai bộ số không so sánh trực tiếp được. Mục tiêu được giữ nguyên:
 
-- hit@5 (any) từ 24% lên ít nhất 70%, và hit@5 (all) từ 8% lên ít nhất 40%;
+- any@5 từ 48% lên ít nhất 70%, và all@5 từ 28% lên ít nhất 40%;
 - độ trễ truy hồi thêm không quá 3 giây ở p50 so với vector thuần;
 - RAGAS đầy đủ ở giai đoạn 4: context precision và context recall tăng ở nhóm numeric và combined, faithfulness không giảm quá 0,03, và q05, q04, q21, q24, q03 lấy được chunk có bằng chứng.
 
