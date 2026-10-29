@@ -22,7 +22,7 @@ Ghi chú khi demo:
 | # | Thứ cần mang | Đường dẫn / lệnh | Sẵn sàng |
 |---|---|---|---|
 | 1 | Product | `uv run streamlit run app/streamlit_app.py`; CLI `uv run finassist ask "..."`; bản ghi `runs/demo.json` | [ ] |
-| 2 | Repository | repo `LangChain`, nhánh `main`; `README.md`, `src/finassist/`, `tests/` (182 passed, 15 skipped) | [ ] |
+| 2 | Repository | repo `LangChain`, nhánh `main`; `README.md`, `src/finassist/`, `tests/` (234 passed, 35 skipped) | [ ] |
 | 3 | Architecture | `docs/ARCHITECTURE.md` (thành phần, control flow, data flow thật, sự cố, quyết định kiến trúc, giới hạn) | [ ] |
 | 4 | Evaluation | `reports/ragas_retrieval_v2.md`, `reports/retrieval_experiments.md`, `reports/ragas_baseline.md` (vector thuần) và các file `.json` kèm theo; `eval/golden_set.json` (30 câu, 25 câu có `evidence`) | [ ] |
 | 5 | Team evidence | `docs/TEAM_LOG.md`; `docs/evidence/links.md` và `docs/evidence/trace_tree.md`; `git log` | [ ] |

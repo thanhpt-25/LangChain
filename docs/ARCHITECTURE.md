@@ -363,7 +363,7 @@ Phép kiểm này trả lời câu hỏi "con số có nằm trong context khôn
 |---|---|---|
 | Không nạp được model reranker (chưa có trong cache và không có mạng, hoặc cache hỏng) | Ghi cảnh báo `reranker ... unavailable`, retriever dùng top-5 vector thuần. Retriever được cache nên các câu sau không thử lại. | `retrieval.make_retriever` |
 | Router LLM không phản hồi | Lỗi nổi lên khỏi đồ thị. CLI in một dòng `error:` kèm gợi ý dùng `--replay`; Streamlit hiện `st.error`. | `cli.py`, `streamlit_app.py` |
-| yfinance lỗi hoặc không có mạng | Dùng giá trong cache, đánh dấu `stale=true` | `tools.get_stock_price` |
+| yfinance lỗi, không có mạng hoặc quá `FINASSIST_PRICE_TIMEOUT` giây (mặc định 8) | Dùng giá trong cache, đánh dấu `stale=true`. Lời gọi chạy trong thread daemon, hết giờ thì ném `TimeoutError` và ghi cảnh báo như mọi lỗi khác. | `tools.get_stock_price`, `tools._call_with_timeout` |
 | Không có cả mạng lẫn cache | Ném `PriceUnavailable`. Câu `price` trả `PRICE_UNAVAILABLE_TEXT`; câu `both` vẫn trả phần filing kèm ghi chú thiếu giá. | `price_tool`, `generate_answer` |
 | File `prices.json` hỏng hoặc sai định dạng | Bỏ qua kèm cảnh báo trong log; lần lấy giá live kế tiếp ghi đè lại file | `tools._read` |
 | Ghi cache bị gián đoạn | Ghi qua file tạm rồi `os.replace`, nên file cũ không bao giờ ở trạng thái ghi dở | `tools._write_atomic` |
@@ -371,7 +371,7 @@ Phép kiểm này trả lời câu hỏi "con số có nằm trong context khôn
 | LLM trả lời về filing mà không có citation hợp lệ sau hai lần | `INSUFFICIENT_TEXT`, `error=missing_citation` | `generate_answer` |
 | Trích field có cấu trúc thất bại | Đọc lại từ tham số tool call thô, từng field một; nếu vẫn không được thì dùng extraction rỗng và ghi cảnh báo | `chains.coerce_extraction` |
 | Số trích ra không có trong chunk | Đặt `revenue` hoặc `eps` về null | `ground_numbers` |
-| Chroma rỗng (quên chạy `ingest`) | Câu filing trả `INSUFFICIENT_TEXT` mà không báo kho trống | chưa xử lý |
+| Chroma rỗng (quên chạy `ingest`) | Câu filing đầu tiên ném `EmptyStoreError` ("The filings store is empty. Build it first: uv run finassist ingest"). CLI in một dòng không kèm gợi ý router; Streamlit hiện lỗi mà không nhắc ô Replay. Câu hỏi chỉ về giá vẫn chạy vì retriever dựng ở lần truy hồi đầu. | `retrieval.make_retriever`, `cli.py`, `streamlit_app.py` |
 | Cần demo khi không có mạng | `finassist ask x --replay runs/demo.json`, hoặc ô Replay trong Streamlit. Replay không dựng app và không gọi dịch vụ nào. | `cli.py`, `streamlit_app.py` |
 
 ## 7. Các quyết định kiến trúc
@@ -400,7 +400,7 @@ Cái giá: có một lớp gián tiếp, và chữ ký của năm hàm phải kh
 
 Quyết định: LLM viết `[chunk_id]` vào câu trả lời, mã đối chiếu từng ID với các chunk vừa retrieve rồi mới dựng `Citation` (nguồn, Item, 200 ký tự đầu của chunk) từ chính chunk đó.
 
-Cái giá: phụ thuộc LLM chịu viết marker đúng định dạng, và định dạng hiện chỉ nhận một ID trong mỗi cặp ngoặc. Nếu LLM viết `[A, B]` thì không có citation nào được nhận, hệ thống thử lại một lần rồi trả `INSUFFICIENT_TEXT`.
+Cái giá: phụ thuộc LLM chịu viết marker đúng định dạng. `postprocess.marker_ids` nhận một hoặc nhiều ID trong mỗi cặp ngoặc (`[A]`, `[A, B]`, `[A; B]`, `[A][B]`), miễn là nội dung cặp ngoặc chỉ gồm ID và dấu phân cách. Cặp ngoặc có chữ khác, như `[see A]` hay ghi chú "price unavailable", không được tính, nên ghi chú giá không thể giả làm citation.
 
 ### 7.4 Giá đến từ công cụ, không đến từ LLM
 
@@ -408,7 +408,7 @@ LLM không biết giá hôm nay. Đồ thị gọi `get_stock_price`, đưa kế
 
 ### 7.5 Từ chối dựa vào bộ phân loại
 
-Việc từ chối câu ngoài phạm vi, kể cả xin tư vấn đầu tư, dựa hoàn toàn vào intent `out_of_scope` của bộ phân loại, cộng với luật "không tư vấn đầu tư" trong prompt trả lời. Không có danh sách từ khóa chặn hay lớp kiểm tra thứ hai. Lý do là câu hỏi tự nhiên có quá nhiều cách diễn đạt, và một danh sách từ khóa vừa chặn nhầm vừa bỏ sót. Cái giá là nếu bộ phân loại xếp nhầm một câu xin tư vấn thành `price`, không còn lớp nào chặn nó.
+Việc từ chối câu ngoài phạm vi, kể cả xin tư vấn đầu tư, dựa hoàn toàn vào intent `out_of_scope` của bộ phân loại, cộng với luật "không tư vấn đầu tư" trong prompt trả lời. Không có danh sách từ khóa chặn hay lớp kiểm tra thứ hai. Lý do là câu hỏi tự nhiên có quá nhiều cách diễn đạt, và một danh sách từ khóa vừa chặn nhầm vừa bỏ sót. Cái giá là nếu bộ phân loại xếp nhầm một câu xin tư vấn thành `price`, không còn lớp nào chặn nó. `tests/test_advice_refusal.py` chạy bộ phân loại thật trên 14 cách hỏi xin lời khuyên hoặc dự đoán (tiếng Anh và tiếng Việt): cả 14 đều bị từ chối, và 6 câu đối chứng giữ đúng intent. Kết quả này là một lần đo trên 14 câu và không bảo đảm cho các cách diễn đạt khác.
 
 ### 7.6 Các quyết định còn lại
 
@@ -434,8 +434,6 @@ Việc từ chối câu ngoài phạm vi, kể cả xin tư vấn đầu tư, d�
 4. Từ chối chỉ có một lớp, như mục 7.5.
 5. LLM chạy ở `temperature=0` nên lần thử lại trong `generate_answer` có thể cho đúng câu trả lời cũ. Chưa có phép đo cho thấy lần thử thứ hai cải thiện được gì.
 6. Judge của RAGAS dùng cùng model với ứng dụng, nên điểm faithfulness có thể cao hơn thực tế.
-7. Marker citation chỉ nhận một ID trong mỗi cặp ngoặc (mục 7.3).
-8. Lời gọi yfinance chưa đặt timeout, nên mạng chậm có thể làm `price_tool` đứng lâu.
 
 Các hướng còn lại, rút ra từ những gì đã đo, nằm trong [`NEXT_STEP.md`](NEXT_STEP.md).
 
