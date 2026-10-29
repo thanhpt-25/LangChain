@@ -106,3 +106,49 @@ def test_item_15_is_kept_and_chunked():
     chunks = chunk_filing("NVDA", 2026, ITEM15, "http://x")
     assert {c.item for c in chunks} >= {"1", "15"}
     assert any(c.chunk_id == "NVDA-2026-15-000" and c.item == "15" for c in chunks)
+
+
+def test_page_header_item_with_lowercase_continuation_does_not_split_section():
+    text = (
+        "Item 1A.  Risk Factors\n" + "Risk one. " * 30 + "\n12\n\nItem 7\nand other factors, SENTINEL_STAYS_IN_1A. " + "More risk. " * 30 + "\n"
+        "Item 7.  Management's Discussion\n" + "Revenue grew. " * 30 + "\n"
+    )
+    items = split_items(text)
+    assert "SENTINEL_STAYS_IN_1A" in items["1A"]
+    assert "SENTINEL_STAYS_IN_1A" not in items["7"]
+    assert "Revenue grew" in items["7"]
+
+
+def test_toc_followed_by_body_resolves_to_body_even_with_page_numbers():
+    toc = "Item 1.\nBusiness\n3\nItem 1A.\nRisk Factors\n9\nItem 7.\nManagement's Discussion\n25\nItem 8.\nFinancial Statements\n40\n"
+    body = (
+        "Item 1.  Business\n" + "We make devices. " * 40 + "\n"
+        "Item 1A.  Risk Factors\n" + "Supply risk. " * 40 + "\n"
+        "Item 7.  Management's Discussion\n" + "BODY_SEVEN " * 40 + "\n"
+        "Item 8.  Financial Statements\n" + "BODY_EIGHT " * 40 + "\n"
+    )
+    items = split_items(toc + body)
+    assert "BODY_SEVEN" in items["7"] and "BODY_EIGHT" not in items["7"]
+    assert len(items["7"]) > 300 and "BODY_EIGHT" in items["8"]
+
+
+def test_load_filing_tolerates_invalid_bytes(tmp_path):
+    from finassist.ingest import load_filing
+
+    (tmp_path / "AAPL.json").write_text('{"fiscal_year": 2025, "source_url": "u"}', encoding="utf-8")
+    (tmp_path / "AAPL.html").write_bytes(b"<html><body>Item 1.  Business\n" + b"We make \xff devices. " * 40 + b"</body></html>")
+    assert load_filing("AAPL", tmp_path)
+
+
+def test_fetch_filings_find_10k(tmp_path):
+    import importlib.util
+    from pathlib import Path
+
+    import pytest
+
+    spec = importlib.util.spec_from_file_location("fetch_filings", Path(__file__).parent.parent / "scripts" / "fetch_filings.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.find_10k({"form": ["8-K", "10-K", "10-K"]}, "AAPL") == 1
+    with pytest.raises(SystemExit, match="NVDA: no 10-K"):
+        mod.find_10k({"form": ["8-K", "10-Q"]}, "NVDA")

@@ -9,6 +9,14 @@ from finassist.config import TICKERS, get_settings
 CIKS = {"AAPL": "0000320193", "MSFT": "0000789019", "NVDA": "0001045810"}
 
 
+def find_10k(recent: dict, ticker: str) -> int:
+    """Index of the most recent 10-K in an EDGAR `recent` block, or exit with a clear message."""
+    for i, form in enumerate(recent["form"]):
+        if form == "10-K":
+            return i
+    raise SystemExit(f"{ticker}: no 10-K found in the recent filings list (is the CIK right?)")
+
+
 def main() -> None:
     s = get_settings()
     s.raw_dir.mkdir(parents=True, exist_ok=True)
@@ -17,21 +25,21 @@ def main() -> None:
         sub = requests.get(f"https://data.sec.gov/submissions/CIK{CIKS[t]}.json", headers=headers, timeout=30)
         sub.raise_for_status()
         recent = sub.json()["filings"]["recent"]
-        idx = next(i for i, f in enumerate(recent["form"]) if f == "10-K")
+        idx = find_10k(recent, t)
         acc = recent["accessionNumber"][idx].replace("-", "")
         doc = recent["primaryDocument"][idx]
         url = f"https://www.sec.gov/Archives/edgar/data/{int(CIKS[t])}/{acc}/{doc}"
         time.sleep(0.3)
-        html = requests.get(url, headers=headers, timeout=60)
-        html.raise_for_status()
-        (s.raw_dir / f"{t}.html").write_text(html.text)
+        resp = requests.get(url, headers=headers, timeout=60)
+        resp.raise_for_status()
+        (s.raw_dir / f"{t}.html").write_bytes(resp.content)
         meta = {
             "ticker": t,
             "fiscal_year": int(recent["reportDate"][idx][:4]),
             "source_url": url,
             "filing_date": recent["filingDate"][idx],
         }
-        (s.raw_dir / f"{t}.json").write_text(json.dumps(meta, indent=2))
+        (s.raw_dir / f"{t}.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
         print(t, meta)
         time.sleep(0.3)
 

@@ -75,6 +75,6 @@ def chunk_filing(ticker: str, fiscal_year: int, text: str, source_url: str = "")
 
 
 def load_filing(ticker: str, raw_dir: Path) -> list[Chunk]:
-    meta = json.loads((raw_dir / f"{ticker}.json").read_text())
-    text = html_to_text((raw_dir / f"{ticker}.html").read_text(errors="ignore"))
+    meta = json.loads((raw_dir / f"{ticker}.json").read_text(encoding="utf-8"))
+    text = html_to_text((raw_dir / f"{ticker}.html").read_text(encoding="utf-8", errors="replace"))
     return chunk_filing(ticker, meta["fiscal_year"], text, meta["source_url"])
