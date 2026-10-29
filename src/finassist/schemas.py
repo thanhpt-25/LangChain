@@ -62,7 +62,7 @@ class IntentResult(BaseModel):
     tickers: list[str] = Field(default_factory=list)
     language: Literal["en", "other"] = "en"
     search_query: str | None = Field(
-        default=None, description="English rewrite of the question for retrieval; only when language is 'other'")
+        default=None, description="English question used for retrieval: the 10-K-only part of the question when intent is 'both', an English rewrite when language is 'other'")
 
 
 class LLMExtraction(BaseModel):
