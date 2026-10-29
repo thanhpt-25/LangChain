@@ -23,8 +23,13 @@ def extract_citations(answer: str, chunks: list[Chunk]) -> list[Citation]:
 
 
 def _appears(token: str, corpus: str) -> bool:
-    """Match token only when not embedded in a longer number (digit/comma-digit/decimal neighbours)."""
-    pat = rf"(?<![\d])(?<!\d[,.])(?<!\d,\d)(?<!\d,\d\d)" + re.escape(token) + r"(?!\d)(?![,.]\d)"
+    """True if token occurs as a standalone number, not embedded in a longer one.
+
+    Rejects a preceding digit or digit+separator ("1,416,161", "1.4.90") and a following
+    digit or separator+digit ("416,1615", "416,161,000", "416,161.5"). A sentence-ending
+    "416,161." is still accepted.
+    """
+    pat = r"(?<!\d)(?<!\d[,.])" + re.escape(token) + r"(?!\d)(?![,.]\d)"
     return re.search(pat, corpus) is not None
 
 

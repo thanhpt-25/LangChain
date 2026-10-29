@@ -58,3 +58,40 @@ def test_ground_numbers_rejects_substring_of_longer_number():
         [ch("AAPL-2025-8-000", "sales 1,416,161 eps 7.465")],
     )
     assert out2.revenue is None and out2.eps is None
+
+
+import pytest
+
+from finassist.postprocess import _appears
+
+
+@pytest.mark.parametrize("corpus", [
+    "Net sales $ 416,161 million",
+    "Net sales (416,161)",
+    "Net sales were 416,161.",
+    "Net sales 416,161, up 6%",
+    "416,161",
+])
+def test_appears_accepts_realistic_formats(corpus):
+    assert _appears("416,161", corpus)
+
+
+def test_appears_accepts_dollar_eps():
+    assert _appears("4.90", "diluted EPS of $4.90 per share")
+    assert _appears("4.90", "EPS $4.90.")
+
+
+@pytest.mark.parametrize("corpus", [
+    "sales 416,161,000",
+    "sales 416,161.5",
+    "sales 1,416,161",
+    "sales 416,1615",
+])
+def test_appears_rejects_embedded(corpus):
+    assert not _appears("416,161", corpus)
+
+
+def test_extract_citations_truncates_quote_to_200_chars():
+    chunks = [ch("AAPL-2025-8-000", "x" * 500)]
+    cites = extract_citations("[AAPL-2025-8-000]", chunks)
+    assert len(cites[0].quote) == 200
