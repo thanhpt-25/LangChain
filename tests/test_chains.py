@@ -152,3 +152,27 @@ def test_structure_fiscal_year_from_chunks_only_for_single_ticker(tmp_path):
     assert deps.structure("q", "a", mixed, [], "filing").fiscal_year is None
     single = [_chunk("AAPL-2024-7-001", fy=2024), _chunk("AAPL-2025-7-002", fy=2025)]
     assert deps.structure("q", "a", single, [], "filing").fiscal_year == 2025
+
+
+def test_make_deps_retrieve_delegates_to_the_retriever():
+    from finassist.chains import make_deps
+    from finassist.config import get_settings
+    from finassist.schemas import Chunk
+
+    class FakeLLM:
+        def with_structured_output(self, *a, **k):
+            return object()
+
+    class FakeRetriever:
+        def __init__(self):
+            self.calls = []
+
+        def retrieve(self, query, tickers):
+            self.calls.append((query, tickers))
+            return [Chunk(chunk_id="AAPL-2025-8-001", text="t", ticker="AAPL", fiscal_year=2025, item="8")]
+
+    r = FakeRetriever()
+    deps = make_deps(get_settings(), store=object(), llm=FakeLLM(), retriever=r)
+    got = deps.retrieve("english query", ["AAPL"])
+    assert [c.chunk_id for c in got] == ["AAPL-2025-8-001"]
+    assert r.calls == [("english query", ["AAPL"])]
