@@ -24,7 +24,10 @@ Return intent:
 Return tickers as a list drawn from {list(TICKERS)} (map company names to tickers). Use [] if none apply.
 ALWAYS include the fields language and search_query in your answer, even when they are trivial.
 language: "en" if the question is written in English, "other" for any other language (e.g. Vietnamese).
-search_query: when language is "other", an English rewrite of the question that keeps company names and financial terms, so it can be matched against English 10-K text (example: "Rủi ro kiểm soát xuất khẩu đối với NVIDIA là gì?" -> "What are the export control risks for NVIDIA?"). When language is "en", null."""
+search_query: the English question used to find passages in the 10-K text.
+- When intent is "both": ALWAYS give a self-contained English question about the 10-K part only (revenue, EPS, net income, risks, MD&A, business). Remove every word about price, market capitalization, P/E, shares or the market. Keep the name of every company that is asked about. Examples: "What is NVIDIA's market capitalization now, and what was its total revenue last fiscal year?" -> "What was NVIDIA's total revenue in its most recent fiscal year?"; "Giá cổ phiếu Apple hiện tại và rủi ro chuỗi cung ứng của họ là gì?" -> "What supply chain risks does Apple disclose in its 10-K?".
+- When language is "other" and intent is not "both": an English rewrite of the question that keeps company names and financial terms, so it can be matched against English 10-K text (example: "Rủi ro kiểm soát xuất khẩu đối với NVIDIA là gì?" -> "What are the export control risks for NVIDIA?").
+- Otherwise (an English question that is not "both"): null."""
 
 GENERATE_SYSTEM = """You answer finance questions using ONLY the provided context.
 Rules:
@@ -117,7 +120,7 @@ def make_deps(settings: Settings, store: FilingStore, llm: ChatAnthropic, retrie
     cache_path = settings.cache_dir / "prices.json"
 
     def classify(question: str) -> IntentResult:
-        return classifier.invoke([("system", CLASSIFY_SYSTEM), ("human", f"QUESTION\n{question}")])
+        return classifier.invoke([("system", CLASSIFY_SYSTEM), ("human", f"QUESTION (v2)\n{question}")])
 
     def retrieve(question: str, tickers: list[str]) -> list[Chunk]:
         nonlocal retriever
