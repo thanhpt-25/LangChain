@@ -33,6 +33,9 @@ def _caveats(meta: dict) -> list[str]:
     if "numeric_sanity" in meta:
         out += ["- Numeric sanity is a substring check: a hit can be a derived figure (for example a subtraction) "
                 "rather than one stated directly, and substring matching of short figures is loose.", ""]
+    out += ["- A number can be grounded but misread: `ground_numbers` and faithfulness only check that the figure "
+            "appears in (or is supported by) a retrieved chunk, not what it means, so a figure taken from a table "
+            "with missing headers can pass both checks while answering a different question.", ""]
     out += ["- The retrieved contexts passed to the judge are not stored in the JSON, so judge inputs cannot be "
             "audited after the fact.", ""]
     return out

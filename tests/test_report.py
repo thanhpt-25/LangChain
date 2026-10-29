@@ -44,6 +44,7 @@ def test_caveats_section_covers_known_limitations():
     assert "answer_relevancy" in md and "RAGAS design artifact" in md
     assert "derived figure" in md and "substring" in md
     assert "contexts" in md and "not stored" in md
+    assert "grounded but misread" in md
 
 
 def test_caveats_report_app_failures_dynamically():
