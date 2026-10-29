@@ -27,6 +27,18 @@ Runtime: 814s
 
 ## Numeric sanity (key figure appears in answer): 7/10
 
+## Caveats
+
+- The judge model (`kr/claude-sonnet-5.5`) is the same model as the application LLM, so it grades its own output; this likely inflates faithfulness.
+
+- 0 app failures in this run (a failed row would be scored 0.0 and listed in `meta.errors`).
+
+- answer_relevancy is 0.0 for refusal or noncommittal answers, even when the answer is honest or grounded; this is a RAGAS design artifact, not necessarily a bad answer. It affects 6 rows: q05, q06, q10, q18, q21, q24 (q21 gave a real price from the tool yet scored 0.0).
+
+- Numeric sanity is a substring check: a hit can be a derived figure (for example a subtraction) rather than one stated directly, and substring matching of short figures is loose. The q03 hit (209,586) is such a derived figure: the answer computed it by subtraction and said so, it is not stated in the filing excerpt.
+
+- The retrieved contexts passed to the judge are not stored in the JSON, so judge inputs cannot be audited after the fact.
+
 ## Worst cases (for Debug questions)
 
 - **q05** (faithfulness 0.714): What was Microsoft's net income in its most recent fiscal year?
@@ -36,7 +48,7 @@ Runtime: 814s
 - **q21** (faithfulness 0.818): What is Apple's current stock price, and what were its total net sales last fiscal year?
   - Why: Retrieval miss on the filing half. The golden chunk AAPL-2025-7-005 was not retrieved; all 5 chunks were Item 8 (8-077, 8-041, 8-006, 8-003, 8-004), so the FY2025 net sales total never appeared. The answer hedged correctly ("context doesn't include Apple's total net sales for fiscal 2025"), gave the price from the tool, and quoted only FY2023 total and U.S. sales. Faithfulness 0.82 is dragged down by the tool price/market-cap statements and the tangential figures; recall 0.5 reflects the price half being covered while the sales half is missing.
 - **q24** (faithfulness 0.867): Compare Apple's and Microsoft's latest annual revenue and tell me both current stock prices.
-  - Why: Retrieval miss on both companies. Neither golden chunk (AAPL-2025-7-005, MSFT-2026-8-000) was in the 10 retrieved chunks (distances 0.53 to 0.58, the weakest of the set). The answer refused the like-for-like comparison, citing only FY2023 Apple total, pro forma Microsoft figures and Microsoft Cloud revenue. It hedged rather than invented; recall and precision are 0.0.
+  - Why: Retrieval miss on both companies. Neither golden chunk (AAPL-2025-7-005, MSFT-2026-8-000) was in the 10 retrieved chunks (distances 0.53 to 0.58, among the weakest). The answer refused the like-for-like comparison, citing only FY2023 Apple total, pro forma Microsoft figures and Microsoft Cloud revenue. It hedged rather than invented; recall and precision are 0.0.
 - **q03** (faithfulness 0.889): How much net sales did Apple's iPhone segment generate in its most recent fiscal year?
   - Why: Retrieval near-miss. The golden chunk AAPL-2025-7-006 was not retrieved (AAPL-2025-7-005 and 8-023 were). The answer noted the iPhone row is cut off at the start of the excerpt in 8-023 and began inferring iPhone as total minus the other categories (the answer ends with an "If those are the only categories" derivation). That derived figure is not stated in any chunk, which is the likely source of the 0.89 faithfulness. Recall is 1.0 but precision 0.0.
 
