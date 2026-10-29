@@ -1,0 +1,65 @@
+{
+  "question": "What was Apple's total net sales in its most recent fiscal year?",
+  "error": null,
+  "output": {
+    "ticker": "AAPL",
+    "fiscal_year": 2025,
+    "revenue": {
+      "value": 416161.0,
+      "unit": "USD millions",
+      "period": "FY2025"
+    },
+    "eps": null,
+    "risk_factors": [],
+    "stock_price": null,
+    "stock_prices": [],
+    "answer": "Apple's total net sales for fiscal 2025 were $416,161 million, up 6% from $391,035 million in 2024 [AAPL-2025-7-005] [AAPL-2025-8-023].",
+    "citations": [
+      {
+        "source": "AAPL 10-K FY2025",
+        "item": "7",
+        "chunk_id": "AAPL-2025-7-005",
+        "quote": "Segment Operating Performance\nThe following table shows net sales by reportable segment for 2025, 2024 and 2023 (dollars in millions):\n2025\nChange\n2024\nChange\n2023\nAmericas\n$\n178,353\n7\n%\n$\n167,045\n3\n%"
+      },
+      {
+        "source": "AAPL 10-K FY2025",
+        "item": "8",
+        "chunk_id": "AAPL-2025-8-023",
+        "quote": "$\n201,183\n\n$\n200,583\n\nMac\n33,708\n\n29,984\n\n29,357\n\niPad\n28,023\n\n26,694\n\n28,300\n\nWearables, Home and Accessories\n35,686\n\n37,005\n\n39,845\n\nServices\n(1)\n109,158\n\n96,169\n\n85,200\n\nTotal net sales\n$\n416,161\n\n"
+      }
+    ],
+    "intent": "filing"
+  },
+  "retrieved": [
+    {
+      "chunk_id": "AAPL-2025-8-077",
+      "item": "8",
+      "score": 0.370890736579895,
+      "text": "$\n41,790\n\n$\n27,082\n\n$\n12,454\n\n$\n13,062\n\n$\n(\n38,828\n)\n$\n123,216\n\n2023\nAmericas\nEurope\nGreater\nChina\nJapan\nRest of\nAsia Pacific\nCorporate\nTotal\nNet sales\n$\n162,560\n\n$\n94,294\n\n$\n72,559\n\n$\n24,257\n\n$\n29,615\n\n$\n—\n$\n383,285\n\nCost of sales\n(\n92,394\n)\n(\n54,101\n)\n(\n39,787\n)\n(\n11,542\n)\n(\n16,313\n)\n—\n(\n214,137\n)\nResearch and development\n—\n—\n—\n—\n—\n(\n29,915\n)\n(\n29,915\n)\nSelling and marketing\n(\n9,658\n)\n(\n4,095\n)\n(\n2,444\n)\n(\n827\n)\n(\n1,236\n)\n—\n(\n18,260\n)\nGeneral and administrative\n—\n—\n—\n—\n—\n(\n6,672\n)\n(\n6,672\n)\nOperating income/(loss)\n$\n60,508\n\n$\n36,098\n\n$\n30,328\n\n$\n11,888\n\n$\n12,066\n\n$\n(\n36,587\n)\n$\n114,301\n\nApple Inc. | 2025 Form 10-K | 47\nThe following tables show net sales for 2025, 2024 and 2023 and long-lived assets as of September 27, 2025 and September 28, 2024 for countries that individually accounted for 10% or more of the respective totals, as well as aggregate amounts for the remaining countries (in millions):\n2025\n2024\n2023\nNet sales:\nU.S.\n$\n151,790\n\n$\n142,196\n\n$\n138,573\n\nChina\n(1)\n64,377"
+    },
+    {
+      "chunk_id": "AAPL-2025-8-023",
+      "item": "8",
+      "score": 0.4262857437133789,
+      "text": "$\n201,183\n\n$\n200,583\n\nMac\n33,708\n\n29,984\n\n29,357\n\niPad\n28,023\n\n26,694\n\n28,300\n\nWearables, Home and Accessories\n35,686\n\n37,005\n\n39,845\n\nServices\n(1)\n109,158\n\n96,169\n\n85,200\n\nTotal net sales\n$\n416,161\n\n$\n391,035\n\n$\n383,285\n\nPortion of total net sales that was included in deferred revenue as of the beginning of the period\n$\n8,229\n\n$\n7,728\n\n$\n8,169"
+    },
+    {
+      "chunk_id": "AAPL-2025-7-007",
+      "item": "7",
+      "score": 0.46598339080810547,
+      "text": "iPhone\niPhone net sales increased during 2025 compared to 2024 due to higher net sales of Pro models.\nMac\nMac net sales increased during 2025 compared to 2024 primarily due to higher net sales of laptops and desktops.\niPad\niPad net sales increased during 2025 compared to 2024 primarily due to higher net sales of iPad Air, iPad mini and iPad, partially offset by lower net sales of iPad Pro.\nWearables, Home and Accessories\nWearables, Home and Accessories net sales decreased during 2025 compared to 2024 primarily due to lower net sales of Accessories and Wearables.\nServices\nServices net sales increased during 2025 compared to 2024 primarily due to higher net sales from advertising, the App Store and cloud services.\nApple Inc. | 2025 Form 10-K | 23\nGross Margin\nProducts and Services gross margin and gross margin percentage for 2025, 2024 and 2023 were as follows (dollars in millions):\n2025\n2024\n2023\nGross margin:\nProducts\n$\n112,887\n$\n109,633\n$\n108,803\nServices\n82,314\n71,050\n60,345"
+    },
+    {
+      "chunk_id": "AAPL-2025-7-005",
+      "item": "7",
+      "score": 0.544926643371582,
+      "text": "Segment Operating Performance\nThe following table shows net sales by reportable segment for 2025, 2024 and 2023 (dollars in millions):\n2025\nChange\n2024\nChange\n2023\nAmericas\n$\n178,353\n7\n%\n$\n167,045\n3\n%\n$\n162,560\nEurope\n111,032\n10\n%\n101,328\n7\n%\n94,294\nGreater China\n64,377\n(4)\n%\n66,952\n(8)\n%\n72,559\nJapan\n28,703\n15\n%\n25,052\n3\n%\n24,257\nRest of Asia Pacific\n33,696\n10\n%\n30,658\n4\n%\n29,615\nTotal net sales\n$\n416,161\n6\n%\n$\n391,035\n2\n%\n$\n383,285\nAmericas\nAmericas net sales increased during 2025 compared to 2024 primarily due to higher net sales of iPhone and Services. The weakness in foreign currencies relative to the U.S. dollar had an unfavorable year-over-year impact on Americas net sales during 2025.\nEurope\nEurope net sales increased during 2025 compared to 2024 primarily due to higher net sales of Services, iPhone and Mac.\nGreater China\nGreater China net sales decreased during 2025 compared to 2024 primarily due to lower net sales of iPhone, partially offset by higher net sales of Mac.\nJapan"
+    },
+    {
+      "chunk_id": "AAPL-2025-8-041",
+      "item": "8",
+      "score": 0.5525956749916077,
+      "text": "$\n24,690\n\nMachinery, equipment and internal-use software\n83,420\n\n80,205\n\nLeasehold improvements\n15,091\n\n14,233\n\nGross property, plant and equipment\n125,848\n\n119,128\n\nAccumulated depreciation\n(\n76,014\n)\n(\n73,448\n)\nTotal property, plant and equipment, net\n$\n49,834\n\n$\n45,680\n\nDepreciation expense on property, plant and equipment was $\n8.0\nbillion, $\n8.2\nbillion and $\n8.5\nbillion during 2025, 2024 and 2023, respectively.\nApple Inc. | 2025 Form 10-K | 39\nNote 6 –\nConsolidated Financial Statement Details\nThe following tables show the Company’s consolidated financial statement details as of September 27, 2025 and September 28, 2024 (in millions):\nOther Non-Current Assets\n2025\n2024\nDeferred tax assets\n$\n20,777\n\n$\n19,499\n\nOther non-current assets\n62,950\n\n55,335\n\nTotal other non-current assets\n$\n83,727\n\n$\n74,834\n\nOther Current Liabilities\n2025\n2024\nIncome taxes payable\n$\n13,016\n\n$\n26,601\n\nAccrued distribution and marketing\n8,919\n\n7,679\n\nOther current liabilities\n44,452\n\n44,024"
+    }
+  ]
+}
