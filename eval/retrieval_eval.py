@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from dataclasses import replace
 from pathlib import Path
 
 from finassist.config import ROOT, TICKERS, get_settings
 from finassist.retrieval import make_retriever
-from finassist.schemas import Chunk
 from finassist.vectorstore import FilingStore, get_embeddings
 
 KS = (5, 10, 20)
@@ -46,6 +46,9 @@ def question_metrics(ranks: list[int | None], ks: tuple[int, ...] = KS) -> dict:
 
 
 def summarize(rows: list[dict], ks: tuple[int, ...] = KS) -> dict:
+    if not rows:
+        raise ValueError("no scored questions")
+
     def agg(sub: list[dict]) -> dict:
         n = len(sub)
         d: dict = {"n": n}
@@ -85,6 +88,8 @@ def _pct(x: float) -> str:
 
 
 def _quantile(xs: list[float], q: float) -> float:
+    if not xs:
+        raise ValueError("no scored questions")
     s = sorted(xs)
     return s[min(len(s) - 1, int(round(q * (len(s) - 1))))]
 
@@ -99,6 +104,13 @@ def render_markdown(label: str, config: dict, summary: dict, times_ms: list[floa
         lines.append(f"| {name} | {d['n']} | " + " | ".join(vals) + " |")
     lines += ["", f"Độ trễ mỗi lần truy hồi (ms): p50 {_quantile(times_ms, 0.5):.0f}, p95 {_quantile(times_ms, 0.95):.0f}", ""]
     return "\n".join(lines)
+
+
+def candidate_warning(candidates: int, mode: str, reranker: str) -> str | None:
+    if candidates >= max(KS) or (mode != "hybrid" and reranker == "none"):
+        return None
+    return (f"warning: candidates={candidates} < {max(KS)}: ranks beyond the candidate pool are unreachable, "
+            f"so hit@10/@20 are understated")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -119,6 +131,9 @@ def main(argv: list[str] | None = None) -> None:
         candidates=a.candidates or s.candidates,
         top_k=max(KS),
     )
+    warning = candidate_warning(s.candidates, s.retrieval_mode, s.reranker)
+    if warning:
+        print(warning, file=sys.stderr)
     store = FilingStore(s.chroma_dir, get_embeddings(s))
     retriever = make_retriever(s, store)
     for t in TICKERS:  # warm-up: load models and build BM25 indexes before timing
