@@ -16,6 +16,13 @@ def test_settings_defaults(monkeypatch):
     assert s.top_k == 5
 
 
+def test_price_timeout_default_and_env(monkeypatch):
+    monkeypatch.delenv("FINASSIST_PRICE_TIMEOUT", raising=False)
+    assert get_settings().price_timeout == 8.0
+    monkeypatch.setenv("FINASSIST_PRICE_TIMEOUT", "2.5")
+    assert get_settings().price_timeout == 2.5
+
+
 def test_retrieval_settings_defaults(monkeypatch):
     for name in ("FINASSIST_RETRIEVAL", "FINASSIST_RERANKER", "FINASSIST_CANDIDATES",
                  "FINASSIST_EMBED_PREFIX", "FINASSIST_TABLE_ROWS", "FINASSIST_CHROMA_DIR"):

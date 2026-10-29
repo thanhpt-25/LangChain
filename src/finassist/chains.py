@@ -126,7 +126,8 @@ def make_deps(settings: Settings, store: FilingStore, llm: ChatAnthropic, retrie
         return retriever.retrieve(question, tickers)
 
     def price(ticker: str) -> PriceInfo:
-        return get_stock_price(ticker, cache_path, offline=settings.price_offline)
+        return get_stock_price(ticker, cache_path, offline=settings.price_offline,
+                               timeout=settings.price_timeout)
 
     def generate(question: str, chunks: list[Chunk], prices: list[PriceInfo]) -> str:
         msg = llm.invoke([("system", GENERATE_SYSTEM),

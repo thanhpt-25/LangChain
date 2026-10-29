@@ -146,3 +146,57 @@ def test_persistence_failure_still_returns_fresh_price(tmp_path, caplog):
         p = get_stock_price("AAPL", blocker / "sub" / "p.json", fetcher=ok)
     assert p.stale is False and p.price == 200.5
     assert "cache" in caplog.text.lower()
+
+
+def slow(seconds):
+    def fetcher(_t):
+        time.sleep(seconds)
+        return ok(_t)
+
+    return fetcher
+
+
+def test_timeout_falls_back_to_stale_cache_without_waiting(tmp_path, caplog):
+    cache = tmp_path / "p.json"
+    get_stock_price("AAPL", cache, fetcher=ok)
+    start = time.monotonic()
+    with caplog.at_level(logging.WARNING):
+        p = get_stock_price("AAPL", cache, fetcher=slow(3), timeout=0.2)
+    assert time.monotonic() - start < 1.5
+    assert p.stale is True and p.price == 200.5
+    assert any("timed out after 0.2s" in r.getMessage() for r in caplog.records)
+
+
+def test_timeout_without_cache_raises_unavailable_without_waiting(tmp_path):
+    start = time.monotonic()
+    with pytest.raises(PriceUnavailable, match="timed out"):
+        get_stock_price("NVDA", tmp_path / "p.json", fetcher=slow(3), timeout=0.2)
+    assert time.monotonic() - start < 1.5
+
+
+def test_fast_fetcher_is_unaffected_by_timeout(tmp_path):
+    p = get_stock_price("AAPL", tmp_path / "p.json", fetcher=ok, timeout=5)
+    assert p.stale is False and p.price == 200.5
+
+
+def test_exception_in_fetch_thread_propagates_as_before(tmp_path):
+    with pytest.raises(PriceUnavailable, match="no network"):
+        get_stock_price("AAPL", tmp_path / "p.json", fetcher=boom, timeout=5)
+
+
+def test_timeout_none_keeps_old_behaviour(tmp_path):
+    p = get_stock_price("AAPL", tmp_path / "p.json", fetcher=slow(0.3), timeout=None)
+    assert p.stale is False
+
+
+def test_fetch_thread_is_a_daemon(tmp_path):
+    import threading
+
+    seen = {}
+
+    def fetcher(t):
+        seen["daemon"] = threading.current_thread().daemon
+        return ok(t)
+
+    get_stock_price("AAPL", tmp_path / "p.json", fetcher=fetcher, timeout=5)
+    assert seen["daemon"] is True

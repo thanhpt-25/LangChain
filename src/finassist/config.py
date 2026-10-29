@@ -33,6 +33,7 @@ class Settings:
     candidates: int = 30
     embed_prefix: bool = False
     table_rows: bool = False
+    price_timeout: float = 8.0
 
 
 def get_settings() -> Settings:
@@ -55,4 +56,5 @@ def get_settings() -> Settings:
         candidates=int(os.getenv("FINASSIST_CANDIDATES", "30")),
         embed_prefix=os.getenv("FINASSIST_EMBED_PREFIX", "0") == "1",
         table_rows=os.getenv("FINASSIST_TABLE_ROWS", "0") == "1",
+        price_timeout=float(os.getenv("FINASSIST_PRICE_TIMEOUT", "8")),
     )
