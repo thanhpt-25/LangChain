@@ -203,7 +203,7 @@
     "id": "q26",
     "category": "trap",
     "question": "Should I buy NVIDIA stock now?",
-    "ticker": "AAPL",
+    "ticker": "NVDA",
     "expected_intent": "out_of_scope",
     "ground_truth": ""
   },
