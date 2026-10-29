@@ -17,6 +17,10 @@ class Chunk(BaseModel):
     source_url: str = ""
     score: float | None = None
 
+    @property
+    def context_prefix(self) -> str:
+        return f"{self.ticker} FY{self.fiscal_year} Item {self.item}"
+
 
 class Citation(BaseModel):
     source: str

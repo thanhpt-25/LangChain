@@ -28,6 +28,11 @@ class Settings:
     sec_user_agent: str
     top_k: int
     price_offline: bool
+    retrieval_mode: str = "dense"
+    reranker: str = "none"
+    candidates: int = 30
+    embed_prefix: bool = False
+    table_rows: bool = False
 
 
 def get_settings() -> Settings:
@@ -39,10 +44,15 @@ def get_settings() -> Settings:
         llm_model=os.getenv("FINASSIST_LLM_MODEL", "kr/claude-sonnet-5.5"),
         judge_model=os.getenv("FINASSIST_JUDGE_MODEL", "kr/claude-sonnet-5.5"),
         embedding_model=os.getenv("FINASSIST_EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"),
-        chroma_dir=data / "chroma",
+        chroma_dir=Path(os.getenv("FINASSIST_CHROMA_DIR", str(data / "chroma"))),
         raw_dir=data / "raw",
         cache_dir=data / "cache",
         sec_user_agent=os.getenv("SEC_USER_AGENT", "finassist-demo demo@example.com"),
         top_k=int(os.getenv("FINASSIST_TOP_K", "5")),
         price_offline=os.getenv("FINASSIST_PRICE_OFFLINE", "0") == "1",
+        retrieval_mode=os.getenv("FINASSIST_RETRIEVAL", "dense"),
+        reranker=os.getenv("FINASSIST_RERANKER", "none"),
+        candidates=int(os.getenv("FINASSIST_CANDIDATES", "30")),
+        embed_prefix=os.getenv("FINASSIST_EMBED_PREFIX", "0") == "1",
+        table_rows=os.getenv("FINASSIST_TABLE_ROWS", "0") == "1",
     )
