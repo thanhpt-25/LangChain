@@ -39,6 +39,7 @@ class GraphState(TypedDict, total=False):
     answer: str
     output: FinanceAnswer
     error: str | None
+    short_circuit: bool
 
 
 @dataclass
@@ -59,7 +60,8 @@ def build_graph(deps: Deps):
         res = deps.classify(state["question"])
         tickers = [t for t in dict.fromkeys(x.strip().upper() for x in res.tickers) if t in TICKERS]
         intent = res.intent if (tickers or res.intent == "out_of_scope") else "out_of_scope"
-        return {"intent": intent, "tickers": tickers, "retrieved_chunks": [], "price_data": [], "error": None}
+        return {"intent": intent, "tickers": tickers, "retrieved_chunks": [], "price_data": [], "error": None,
+                "short_circuit": False}
 
     def route(state: GraphState) -> str:
         return {"price": "price_tool", "both": "price_tool", "filing": "retrieve", "out_of_scope": "refuse"}[state["intent"]]
@@ -87,21 +89,21 @@ def build_graph(deps: Deps):
         missing = _missing_prices(state)
         note = price_unavailable_note(missing) if missing else ""
         if needs_filing and not chunks:
-            return {"answer": INSUFFICIENT_TEXT + note}
+            return {"answer": INSUFFICIENT_TEXT + note, "short_circuit": True}
         if intent == "price" and not prices:
-            return {"answer": PRICE_UNAVAILABLE_TEXT}
+            return {"answer": PRICE_UNAVAILABLE_TEXT, "short_circuit": True}
         for _ in range(2):
             answer = deps.generate(state["question"], chunks, prices)
             if not needs_filing or extract_citations(answer, chunks):
                 return {"answer": answer + note}
-        return {"answer": INSUFFICIENT_TEXT + note, "error": _join(state["error"], "missing_citation")}
+        return {"answer": INSUFFICIENT_TEXT + note, "error": _join(state["error"], "missing_citation"), "short_circuit": True}
 
     def format_output(state: GraphState) -> GraphState:
         intent, answer = state["intent"], state["answer"]
         chunks = state["retrieved_chunks"]
         prices = state["price_data"]
         tool_prices = {"stock_price": prices[0] if len(prices) == 1 else None, "stock_prices": list(prices)}
-        if answer.startswith((INSUFFICIENT_TEXT, PRICE_UNAVAILABLE_TEXT)):
+        if state.get("short_circuit"):
             return {"output": FinanceAnswer(intent=intent, answer=answer, **tool_prices)}
         out = deps.structure(state["question"], answer, chunks, prices, intent)
         out = ground_numbers(out, chunks)

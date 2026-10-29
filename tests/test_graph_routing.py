@@ -70,6 +70,8 @@ def test_price_two_tickers_one_fails_names_failed_ticker(make_deps):
     out = run(deps)["output"]
     assert out.answer.endswith("[Giá hiện không khả dụng / price unavailable: MSFT]")
     assert "AAPL" not in out.answer.split("price unavailable:")[1]
+    assert [p.ticker for p in out.stock_prices] == ["AAPL"]
+    assert out.stock_price is not None and out.stock_price.ticker == "AAPL"
 
 
 def test_both_no_chunks_is_insufficient_but_keeps_tool_price(make_deps):
@@ -87,12 +89,11 @@ def _fabricating(deps):
 
 
 def test_stock_price_never_comes_from_structure_llm(make_deps):
-    deps, _ = make_deps(intent="price", price_fn=_fail)
-    out = run(_fabricating(deps))["output"]
-    assert out.stock_price is None and out.stock_prices == []
+    # intent="price" with a failing tool short-circuits before `structure` runs, so it cannot exercise the
+    # override; the "both" path (chunks present, price missing) does reach `structure`.
     deps, _ = make_deps(intent="both", price_fn=_fail)
     out = run(_fabricating(deps))["output"]
-    assert out.stock_price is None
+    assert out.stock_price is None and out.stock_prices == []
 
 
 def test_two_tickers_stock_price_none_stock_prices_has_both(make_deps):
@@ -119,3 +120,19 @@ def test_refusal_state_keys_are_safe_to_index(make_deps):
     deps, _ = make_deps(intent="out_of_scope", tickers=())
     state = run(deps)
     assert state["retrieved_chunks"] == [] and state["price_data"] == [] and state["error"] is None
+
+
+def test_normal_answer_starting_with_insufficient_text_is_still_structured(make_deps):
+    gen = lambda q, cs, ps: INSUFFICIENT_TEXT + " However, net sales were 416,161 [AAPL-2025-7-000]."
+    deps, calls = make_deps(intent="filing", generate=gen)
+    out = run(deps)["output"]
+    assert "structure" in calls
+    assert [c.chunk_id for c in out.citations] == ["AAPL-2025-7-000"]
+
+
+def test_sentinel_paths_skip_structure_and_set_flag(make_deps):
+    deps, calls = make_deps(intent="filing", chunks=[])
+    state = run(deps)
+    assert "structure" not in calls and state["short_circuit"] is True
+    deps, calls = make_deps(intent="filing")
+    assert run(deps)["short_circuit"] is False
