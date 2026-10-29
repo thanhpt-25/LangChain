@@ -106,3 +106,57 @@ Số liệu trước và sau (giai đoạn 1a so với 2b), overall: any@5 64% v
 Tác động lên các câu đã theo dõi. Ở 2b, q25 vào top-5 (ở giai đoạn 1a ranks là None, None) nên combined tăng; q14 (risk) rời top-5 (ranks None, 8, None) nên risk giảm. q21 và q23 vẫn có bằng chứng trong top-5 ở 2b nhưng ở 2a cả hai nằm hạng 7. q22 vẫn không có chunk bằng chứng nào ở cả 2a và 2b; q24 vẫn ở hạng 10 và 12. Trong năm câu khó đã biết, q03 và q06 nằm trong top-5 ở mọi cấu hình, còn q05 (hạng 13 ở 2b) và q10 (hạng 13 ở 2b) vẫn trượt, và q11 vẫn không có chunk nào ở cả hai biến thể. Với các câu risk trượt, BM25 không cứu được q11, q15 và q16 (hạng 11, 16, 19 trở lên), và còn làm mất q14. Kết luận cho dấu hiệu từ khóa: các nhóm bằng chứng còn thiếu thường dùng từ diễn đạt khác với câu hỏi, nên khớp từ vựng không bù được.
 
 Khoảng cách tới mục tiêu 70% sau quyết định: cấu hình cuối (vector top-30 + MiniLM) có any@5 64%, thiếu 6 điểm, tương đương 2 câu nữa (18 trên 25 là 72%; 17 trên 25 là 68% vẫn chưa đạt). all@5 36%, thiếu 4 điểm so với mục tiêu 40%, tức 1 câu. Chạy lại cấu hình cuối cho thấy các câu còn trượt ở top-5 và ranks của từng nhóm bằng chứng: q04 [7], q05 [12], q10 [13] (numeric), q11 [None, None], q15 [7, None], q16 [15, 13, 20] (risk), q22 [None, None], q24 [10, 12], q25 [None, None] (combined). Lần chạy lại này cho p50 143 ms và p95 185 ms, gần số 149 ms đã ghi ở mục 1a. Giai đoạn 3 tiếp tục từ cấu hình này; q04, q15, q24 gần top-5 nhất, còn q11, q22, q25 chưa có chunk nào trong 30 ứng viên.
+## giai đoạn 3a: chunk bảng + tiền tố embed, vector top-30 + MiniLM (cấu hình tốt nhất)
+
+Cấu hình: mode=dense, reranker=cross-encoder/ms-marco-MiniLM-L-6-v2, candidates=30, chroma_dir=chroma_tables
+
+| nhóm | n | any@5 | any@10 | any@20 | all@5 | all@10 | all@20 | mrr |
+|---|---|---|---|---|---|---|---|---|
+| overall | 25 | 56% | 64% | 84% | 24% | 32% | 60% | 0.327 |
+| combined | 5 | 40% | 40% | 60% | 20% | 20% | 40% | 0.157 |
+| numeric | 10 | 50% | 60% | 90% | 50% | 60% | 90% | 0.282 |
+| risk | 10 | 70% | 80% | 90% | 0% | 10% | 40% | 0.458 |
+
+Độ trễ mỗi lần truy hồi (ms): p50 152, p95 171
+
+## giai đoạn 3b: chunk bảng + tiền tố embed, vector thuần không reranker
+
+Cấu hình: mode=dense, reranker=none, candidates=30, chroma_dir=chroma_tables
+
+| nhóm | n | any@5 | any@10 | any@20 | all@5 | all@10 | all@20 | mrr |
+|---|---|---|---|---|---|---|---|---|
+| overall | 25 | 56% | 72% | 84% | 32% | 36% | 64% | 0.459 |
+| combined | 5 | 20% | 40% | 60% | 20% | 20% | 60% | 0.238 |
+| numeric | 10 | 60% | 70% | 90% | 60% | 70% | 90% | 0.455 |
+| risk | 10 | 70% | 90% | 90% | 10% | 10% | 40% | 0.573 |
+
+Độ trễ mỗi lần truy hồi (ms): p50 8, p95 10
+
+## giai đoạn 3c: chunk bảng, không tiền tố embed, vector top-30 + MiniLM
+
+Cấu hình: mode=dense, reranker=cross-encoder/ms-marco-MiniLM-L-6-v2, candidates=30, chroma_dir=chroma_tables_noprefix
+
+| nhóm | n | any@5 | any@10 | any@20 | all@5 | all@10 | all@20 | mrr |
+|---|---|---|---|---|---|---|---|---|
+| overall | 25 | 52% | 60% | 72% | 24% | 32% | 52% | 0.313 |
+| combined | 5 | 20% | 20% | 40% | 20% | 20% | 40% | 0.117 |
+| numeric | 10 | 50% | 60% | 70% | 50% | 60% | 70% | 0.269 |
+| risk | 10 | 70% | 80% | 90% | 0% | 10% | 40% | 0.455 |
+
+Độ trễ mỗi lần truy hồi (ms): p50 143, p95 161
+
+
+
+### Quyết định giai đoạn 3
+
+Bỏ giai đoạn 3 (chunk theo hàng bảng và tiền tố embed) và giữ cấu hình của giai đoạn 1 (vector top-30 + MiniLM). Mã nguồn ở lại vì nó là tùy chọn và có test; các biến FINASSIST_TABLE_ROWS và FINASSIST_EMBED_PREFIX mặc định tắt. Đã xóa data/chroma_tables và data/chroma_tables_noprefix; data/chroma (baseline) không bị đụng tới.
+
+Ngưỡng ở spec 3.4 đòi any@5 tăng ít nhất 5 điểm so với kết quả tốt nhất trước đó (64%), hoặc sửa được ít nhất một câu trong q05, q04, q21, q24, q03 mà không làm hỏng câu khác. Biến thể tốt nhất của giai đoạn 3 là 3a (bảng + tiền tố, vector top-30 + MiniLM): any@5 56%, thấp hơn 64% đúng 8 điểm, tức 2 câu. Trong năm câu khó, q03 và q21 vẫn có bằng chứng trong top-5 như trước, còn q04 [8], q05 [15] và q24 [12, 13] vẫn trượt, nên không câu nào được sửa. Ba câu bị hỏng so với giai đoạn 1: q07 (hạng 20), q09 (hạng 12) và q23 (không có chunk nào trong 30 ứng viên). Một câu mới vào top-5 là q25, nhưng nó không nằm trong danh sách năm câu của ngưỡng.
+
+Số liệu trước và sau (giai đoạn 1a so với 3a), overall: any@5 64% và 56%, all@5 36% và 24%, any@10 76% và 64%, any@20 88% và 84%, MRR 0.376 và 0.327. Theo nhóm, any@5 là combined 40% và 40%, numeric 70% và 50%, risk 70% và 70%. Độ trễ p50 149 ms và 152 ms, p95 178 ms và 171 ms. Số chunk: kho chuẩn 1162 (AAPL 256, MSFT 451, NVDA 455), kho theo hàng bảng 1168 (AAPL 261, MSFT 452, NVDA 455), tức thêm 6 chunk; việc đổi dòng ngắn thành dòng bảng gần như không đổi ranh giới chunk, nhưng nội dung chunk thay đổi nhiều, và nhóm numeric là nhóm chịu thiệt nhất (giảm 2 câu).
+
+Hai biến thể còn lại để tách tác động. 3b (bảng + tiền tố, vector thuần không reranker) có any@5 56%, all@5 32%, MRR 0.459, p50 8 ms; so với giai đoạn 0 (48%, 28%, 0.371) đó là tăng 8 điểm any@5, nhưng baseline đúng để so là 64% của giai đoạn 1 nên không đạt. Nhờ chunk mới, q04 vào top-5 ở 3b mà không cần reranker, nhưng q06, q18 và q23 rời top-5. 3c (bảng, không tiền tố, vector top-30 + MiniLM) có any@5 52%, all@5 24%, MRR 0.313, p50 143 ms, kém 3a 4 điểm ở any@5 và any@20 (72% so với 84%). Như vậy tiền tố embed có đóng góp dương nhỏ khi đã có chunk bảng (thêm 1 câu ở any@5, 3 câu ở any@20), còn bản thân các chunk theo hàng bảng làm giảm kết quả so với văn bản phẳng ở cấu hình tốt nhất. Nếu giữ lại phần nào của giai đoạn 3 cho thử nghiệm sau thì đó là tiền tố, không phải hàng bảng; phép đo này chưa có biến thể chỉ có tiền tố trên văn bản phẳng nên chưa thể kết luận riêng cho tiền tố.
+
+q10 không được cứu. Chunk duy nhất thỏa bằng chứng của q10 là NVDA-2026-15-142, nay chứa dòng "Data Center | 193,737 | 115,186 | 47,525" (hàng và con số cùng một dòng), nhưng nó không vào 30 ứng viên của vector ở cả ba biến thể (ranks [None]), nên reranker không thể xếp lại nó. Ở baseline chunk đó nằm ở hạng 13. Nguyên nhân gần nhất là biểu diễn embedding của một bảng nhiều số vẫn ở xa câu hỏi bằng lời, và định dạng hàng không thay đổi điều đó. q20 (nhiều nhóm bằng chứng, trong đó có "215,938" và "Up 65%") vẫn có bằng chứng trong top-5 ở cả ba biến thể.
+
+Các câu còn trượt ở top-5 trong cấu hình cuối (giai đoạn 1, vector top-30 + MiniLM): q04, q05, q10, q11, q15, q16, q22, q24, q25. Khoảng cách tới mục tiêu: any@5 64% so với 70%, thiếu 6 điểm (2 câu; 18 trên 25 mới đạt); all@5 36% so với 40%, thiếu 4 điểm (1 câu); p50 149 ms, vượt xa ngưỡng độ trễ. Hai mục tiêu chất lượng chưa đạt sau ba giai đoạn.
