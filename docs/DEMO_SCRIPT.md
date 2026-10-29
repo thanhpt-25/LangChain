@@ -1,28 +1,28 @@
 # Kịch bản demo (8 phút trình bày + 4 phút hỏi đáp + 3 phút phản hồi)
 
-Tổng 15 phút. Phần demo 8 phút chia 4 phần. Trainer có thể hỏi một trong 4 loại: Explain, Predict, Debug, Justify (đáp án sẵn trong `docs/KNOWLEDGE_CHECK.md`).
+Tổng cộng 15 phút. Phần demo 8 phút chia làm 4 phần. Trainer có thể hỏi một trong 4 loại: Explain, Predict, Debug, Justify (đáp án sẵn trong `docs/KNOWLEDGE_CHECK.md`).
 
 ## 1. Lịch trình trình bày 8 phút
 
 | Thời gian | Phần | Nói và làm gì | Mở sẵn |
 |---|---|---|---|
-| 0:00-1:30 | 1. Bài toán và bối cảnh tài chính | Nhà đầu tư/analyst muốn trả lời nhanh từ 10-K và giá cổ phiếu, nhưng LLM trần dễ bịa số. Phạm vi: AAPL, MSFT, NVDA. Hệ thống phải (a) có trích dẫn `chunk_id`, (b) lấy giá bằng tool tất định, (c) từ chối câu ngoài phạm vi và tư vấn đầu tư | `README.md` (2 dòng đầu) |
-| 1:30-3:30 | 2. Kiến trúc và data flow | Chỉ sơ đồ graph trong `docs/ARCHITECTURE.md` mục 1: `classify_intent` rẽ 4 nhánh. Đi qua data flow thật của câu `both` (mục 5): `price_tool` 1.67 s, `retrieve` 0.74 s ra 5 chunk `NVDA-2026-1A-126` ... `NVDA-2026-15-020`. Nhấn 3 quyết định: citation tất định (`postprocess.py:10-22`), `ground_numbers` (`postprocess.py:36`), giá từ tool | `docs/ARCHITECTURE.md` |
+| 0:00-1:30 | 1. Bài toán và bối cảnh tài chính | Nhà đầu tư/analyst muốn trả lời nhanh từ 10-K và giá cổ phiếu, nhưng LLM trần dễ bịa số. Phạm vi: AAPL, MSFT, NVDA. Hệ thống phải (a) có trích dẫn `chunk_id`, (b) lấy giá bằng tool tất định, (c) từ chối câu ngoài phạm vi và tư vấn đầu tư | `README.md` (phần mở đầu) |
+| 1:30-3:30 | 2. Kiến trúc và data flow | Chỉ sơ đồ graph trong `docs/ARCHITECTURE.md` mục 3: `classify_intent` rẽ 4 nhánh. Đi qua data flow thật của câu `both` (mục 4.2): `price_tool` 1.67 s, `retrieve` 0.74 s ra 5 chunk `NVDA-2026-1A-126` ... `NVDA-2026-15-020`. Nhấn 3 quyết định trong mục 7: citation tất định (`postprocess.py:10-22`), `ground_numbers` (`postprocess.py:36`), giá từ tool | `docs/ARCHITECTURE.md` |
 | 3:30-6:00 | 3. Chạy trực tiếp | (a) Câu `both`: "What is NVIDIA's current stock price and how do export controls threaten it?" qua Streamlit: câu trả lời, bảng citation, JSON, chunk retrieve. Mở trace LangSmith (URL trong `docs/evidence/links.md`) và chỉ các node `classify_intent`, `price_tool`, `retrieve`, `generate_answer`, `format_output`. (b) Câu ngoài phạm vi: "Should I buy NVIDIA stock now?" cho ra từ chối, trace chỉ có `classify_intent` và `refuse` | Streamlit, tab LangSmith |
-| 6:00-8:00 | 4. Đánh giá, một lỗi, bước tiếp | `reports/ragas_baseline.md`: faithfulness 0.939, precision 0.309, recall 0.387, relevancy 0.687, intent 30/30, numeric sanity 7/10. Nêu ngay Caveats (judge cùng model với app). Một lỗi: q05 MSFT net income, golden chunk `MSFT-2026-8-001` không được retrieve và câu trả lời hedge đúng. Nếu được hỏi tiếp, nêu thẳng lỗi nặng hơn: q10/q20 trả "total revenue $139,297" (sai; thật là 215,938) từ một bảng không có tiêu đề cột, và con số này vẫn qua `ground_numbers` vì chỉ kiểm tra văn bản (xem Caveats). Bước tiếp: `docs/NEXT_STEP.md` | `reports/ragas_baseline.md` |
+| 6:00-8:00 | 4. Đánh giá, một lỗi, bước tiếp | `reports/ragas_baseline.md`: faithfulness 0.939, precision 0.309, recall 0.387, relevancy 0.687, intent 30/30, numeric sanity 7/10. Nêu ngay Caveats (judge cùng model với app). Một lỗi: q05 MSFT net income, golden chunk `MSFT-2026-8-001` không được retrieve và câu trả lời hedge đúng. Nếu được hỏi tiếp, hãy nêu thẳng lỗi nặng hơn: q10/q20 trả "total revenue $139,297" (sai; thật là 215,938) từ một bảng không có tiêu đề cột, và con số này vẫn qua `ground_numbers` vì chỉ kiểm tra văn bản (xem Caveats và `docs/ARCHITECTURE.md` mục 8). Bước tiếp: `docs/NEXT_STEP.md` | `reports/ragas_baseline.md` |
 
 Ghi chú khi demo:
 - Ở chế độ Replay, Streamlit luôn phát lại `runs/demo.json` (câu Apple net sales, intent `filing`), bất kể câu nhập ở ô Question; app hiển thị dòng "Replaying a recorded run" kèm câu đã ghi. Hãy nói rõ với khán giả đây là bản ghi.
 - Giá thay đổi mỗi lần chạy (trace thật: 215.38 USD lúc 2026-10-29 01:31 UTC), đừng hứa số cụ thể trước.
 - Một lần chạy live `both` mất khoảng 13.65 s (trace thật); vừa chờ vừa giải thích node đang chạy.
 
-## 2. Danh sách 6 thứ cần chuẩn bị (Sản phẩm, repository, kiến trúc, đánh giá, bằng chứng nhóm, bước tiếp theo)
+## 2. Danh sách 6 thứ cần chuẩn bị
 
 | # | Thứ cần mang | Đường dẫn / lệnh | Sẵn sàng |
 |---|---|---|---|
 | 1 | Product | `uv run streamlit run app/streamlit_app.py`; CLI `uv run finassist ask "..."`; bản ghi `runs/demo.json` | [ ] |
-| 2 | Repository | repo `LangChain`, nhánh `feat/finance-assistant`; `README.md`, `src/finassist/`, `tests/` (145 passed, 12 skipped) | [ ] |
-| 3 | Architecture | `docs/ARCHITECTURE.md` (sơ đồ, state, node, data flow thật, bảng quyết định) | [ ] |
+| 2 | Repository | repo `LangChain`, nhánh `main`; `README.md`, `src/finassist/`, `tests/` (145 passed, 12 skipped) | [ ] |
+| 3 | Architecture | `docs/ARCHITECTURE.md` (thành phần, control flow, data flow thật, sự cố, quyết định kiến trúc, giới hạn) | [ ] |
 | 4 | Evaluation | `reports/ragas_baseline.md` và `reports/ragas_baseline.json`; `eval/golden_set.json` (30 câu) | [ ] |
 | 5 | Team evidence | `docs/TEAM_LOG.md`; `docs/evidence/links.md` và `docs/evidence/trace_tree.md`; `git log` | [ ] |
 | 6 | Next step | `docs/NEXT_STEP.md` (hybrid retrieval cho chunk báo cáo tài chính) | [ ] |
@@ -41,7 +41,7 @@ Tạo lại bản ghi: `uv run finassist ask "..." --record runs/demo.json` (c�
 
 Câu hỏi live: dùng câu tiếng Anh làm chính (ví dụ "What is NVIDIA's current stock price and how do export controls threaten it?"), vì embedding `bge-small-en-v1.5` chỉ dành cho tiếng Anh. Tiếng Việt chỉ là phần thưởng tùy chọn: câu rủi ro xuất khẩu của NVIDIA đã được giảm thiểu bằng `search_query` tiếng Anh do classifier viết lại, nhưng câu về bảng số liệu (ví dụ "Lợi nhuận ròng của Microsoft là bao nhiêu?") vẫn hay retrieve hụt.
 
-Cẩn thận: chạy lại `python -m eval.run_ragas` ghi đè `reports/ragas_baseline.{json,md}`, kể cả các ghi chú viết tay ("TO ANALYZE", Caveats, Worst cases). Chạy lại mất khoảng 14 phút; hãy sao lưu `reports/ragas_baseline.md` trước. Trước giờ demo không cần chạy lại.
+Lưu ý: chạy lại `python -m eval.run_ragas` ghi đè `reports/ragas_baseline.{json,md}`, kể cả các ghi chú viết tay ("TO ANALYZE", Caveats, Worst cases). Chạy lại mất khoảng 14 phút, nên hãy sao lưu `reports/ragas_baseline.md` trước. Không cần chạy lại trước giờ demo.
 
 ## 4. Danh sách kiểm tra an toàn
 
@@ -55,18 +55,18 @@ Cẩn thận: chạy lại `python -m eval.run_ragas` ghi đè `reports/ragas_ba
 
 ## 5. Chuẩn bị hỏi đáp: mẫu và 2 ví dụ đã điền
 
-Mẫu: **Context** (đang làm gì, môi trường) -> **Attempt** (đã thử gì) -> **Evidence** (log, test, commit) -> **Specific question** (một câu hỏi hẹp).
+Mẫu gồm bốn phần theo thứ tự: Context (đang làm gì, môi trường), Attempt (đã thử gì), Evidence (log, test, commit) và Specific question (một câu hỏi hẹp).
 
 ### Ví dụ 1: `ragas` không import được
 
-- **Context:** chạy `eval/run_ragas.py` để chấm baseline bằng RAGAS 0.4.3 trên Python 3.12, `langchain-core` 1.x.
-- **Attempt:** `import ragas` lỗi vì ragas import `ChatVertexAI` và `VertexAI` từ `langchain_community`, mà `langchain-community` 0.4.x không còn cung cấp. Không hạ được `langchain-core` về bản 0.x vì các gói LangChain khác trong dự án cần bản 1.x. Cách đang dùng: `eval/_ragas_compat.py` đăng ký module giả rỗng (`_stub`, dòng 13-23) chỉ khi module thật thiếu, và import trước ragas (`eval/run_ragas.py:11`). Đã thu hẹp `except` thành `ModuleNotFoundError` đúng tên module để không che lỗi import khác (commit `b0ad410`).
-- **Evidence:** `eval/_ragas_compat.py`, `tests/test_ragas_compat.py`, baseline chạy được 25 câu, 0 lỗi app (`reports/ragas_baseline.md`).
-- **Specific question:** shim stub này có chấp nhận được cho một lần đo baseline không, hay nên ghim phiên bản `ragas` cũ hơn và chấp nhận phải hạ cả bộ LangChain?
+- Context: chạy `eval/run_ragas.py` để chấm baseline bằng RAGAS 0.4.3 trên Python 3.12, `langchain-core` 1.x.
+- Attempt: `import ragas` lỗi vì ragas import `ChatVertexAI` và `VertexAI` từ `langchain_community`, mà `langchain-community` 0.4.x không còn cung cấp. Không hạ được `langchain-core` về bản 0.x vì các gói LangChain khác trong dự án cần bản 1.x. Cách đang dùng: `eval/_ragas_compat.py` đăng ký module giả rỗng (`_stub`, dòng 13-23) chỉ khi module thật thiếu, và import trước ragas (`eval/run_ragas.py:11`). Đã thu hẹp `except` thành `ModuleNotFoundError` đúng tên module để không che lỗi import khác (commit `b0ad410`).
+- Evidence: `eval/_ragas_compat.py`, `tests/test_ragas_compat.py`, baseline chạy được 25 câu, 0 lỗi app (`reports/ragas_baseline.md`).
+- Specific question: shim stub này có chấp nhận được cho một lần đo baseline không, hay nên ghim phiên bản `ragas` cũ hơn và chấp nhận phải hạ cả bộ LangChain?
 
 ### Ví dụ 2: biến môi trường trong shell ghi đè `.env`
 
-- **Context:** `finassist` đọc `ANTHROPIC_BASE_URL` và `ANTHROPIC_API_KEY` từ `.env` qua `python-dotenv`.
-- **Attempt:** mặc định `load_dotenv` không ghi đè biến đã có trong shell, nên giá trị `ANTHROPIC_*` đã export sẵn trong shell thắng `.env` và app gọi nhầm endpoint. Đã đổi thành `load_dotenv(ROOT / ".env", override=True)` (`src/finassist/config.py:34`), và thêm fixture trong `tests/conftest.py` vô hiệu hóa việc nạp `.env` khi chạy unit test (trừ khi `RUN_INTEGRATION=1`) để test không phụ thuộc máy (commit `e091608`).
-- **Evidence:** commit `e091608` "let project .env override shell env; isolate unit tests from .env"; `tests/conftest.py` (fixture `_isolate_from_dotenv`); `README.md` mục Troubleshooting.
-- **Specific question:** với một app demo, nên để `.env` của dự án luôn thắng như hiện tại, hay để biến shell thắng (chuẩn 12-factor) và in cảnh báo khi hai giá trị khác nhau?
+- Context: `finassist` đọc `ANTHROPIC_BASE_URL` và `ANTHROPIC_API_KEY` từ `.env` qua `python-dotenv`.
+- Attempt: mặc định `load_dotenv` không ghi đè biến đã có trong shell, nên giá trị `ANTHROPIC_*` đã export sẵn trong shell thắng `.env` và app gọi nhầm endpoint. Đã đổi thành `load_dotenv(ROOT / ".env", override=True)` (`src/finassist/config.py:34`), và thêm fixture trong `tests/conftest.py` vô hiệu hóa việc nạp `.env` khi chạy unit test (trừ khi `RUN_INTEGRATION=1`) để test không phụ thuộc máy (commit `e091608`).
+- Evidence: commit `e091608` "let project .env override shell env; isolate unit tests from .env"; `tests/conftest.py` (fixture `_isolate_from_dotenv`); `README.md` mục Xử lý sự cố.
+- Specific question: với một app demo, nên để `.env` của dự án luôn thắng như hiện tại, hay để biến shell thắng (chuẩn 12-factor) và in cảnh báo khi hai giá trị khác nhau?
