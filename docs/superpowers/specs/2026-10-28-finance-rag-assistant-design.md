@@ -25,6 +25,7 @@ Exit criteria (từ đề bài): demo chạy được một kịch bản thật 
 | LLM | Claude qua router local Omnirouter (`ANTHROPIC_BASE_URL=http://localhost:20128/v1`, model `kr/claude-sonnet-5.5`; `auto/*` đang lỗi rate limit) | Đã kiểm tra gọi thật HTTP 200 |
 | Embedding | `BAAI/bge-small-en-v1.5` chạy local (HuggingFace) | Anthropic không có API embedding; không cần key thêm |
 | VectorDB | Chroma, lưu tại `data/chroma/` | Có metadata filter, chạy local; loại FAISS vì filter yếu |
+| Item giữ lại | 1, 1A, 7, 7A, 8, 15 | Item 15 được thêm vì NVIDIA đặt báo cáo tài chính ở Item 15, Item 8 chỉ là stub |
 | Dữ liệu giá | `yfinance` + cache JSON `data/cache/prices.json` | Demo không phụ thuộc mạng |
 | Đánh giá | RAGAS, judge là Claude, embedding local | Theo đề bài |
 | Observability | LangSmith (biến môi trường `LANGSMITH_*`) | Theo đề bài |
@@ -76,7 +77,7 @@ Mọi giá trị số phải truy được về một citation hoặc `stock_pri
 ## 5. Dữ liệu và ingestion
 
 - Nguồn: 10-K mới nhất của AAPL, MSFT, NVDA từ SEC EDGAR (HTML), lưu `data/raw/`.
-- Parse HTML → text, tách theo **Item** (1, 1A, 7, 7A, 8). Chunk trong từng Item bằng `RecursiveCharacterTextSplitter` (≈1000 ký tự, overlap 150).
+- Parse HTML → text, tách theo **Item** (1, 1A, 7, 7A, 8, 15). Chunk trong từng Item bằng `RecursiveCharacterTextSplitter` (≈1000 ký tự, overlap 150).
 - Metadata mỗi chunk: `ticker, fiscal_year, item, chunk_id, source_url`.
 - `chunk_id` ổn định (`AAPL-2025-1A-012`) để eval và trích dẫn tái lập được.
 - Ingestion idempotent: chạy lại không nhân đôi chunk.
@@ -108,11 +109,12 @@ Mọi giá trị số phải truy được về một citation hoặc `stock_pri
 
 ```
 pyproject.toml  .env.example  .gitignore  README.md
-src/finassist/{config,schemas,ingest,vectorstore,tools,graph,cli}.py
+src/finassist/{config,schemas,ingest,vectorstore,tools,postprocess,graph,chains,runtime,cli}.py
 app/streamlit_app.py
-eval/{golden_set.json,run_ragas.py}
-scripts/{fetch_filings.py,trace_link.py,record_demo.py}
-reports/  runs/  data/{raw,chroma,cache}/
+eval/{golden_set.json,run_ragas.py,report.py,_ragas_compat.py}
+scripts/{fetch_filings.py,find_in_filing.py,trace_link.py,trace_evidence.py}
+  (ghi demo: không có `scripts/record_demo.py`; dùng `finassist ask "..." --record runs/demo.json`)
+reports/  runs/  docs/evidence/  data/{raw,chroma,cache}/
 docs/{ARCHITECTURE,KNOWLEDGE_CHECK,DEMO_SCRIPT,TEAM_LOG,NEXT_STEP}.md
 tests/
 ```
