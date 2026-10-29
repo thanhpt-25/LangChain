@@ -7,7 +7,7 @@ from langchain_anthropic import ChatAnthropic
 
 from finassist.config import TICKERS, Settings
 from finassist.graph import Deps
-from finassist.postprocess import MARKER_RE
+from finassist.postprocess import marker_ids
 from finassist.retrieval import make_retriever
 from finassist.schemas import Chunk, FinanceAnswer, Intent, IntentResult, LLMExtraction, Money, PriceInfo
 from finassist.tools import get_stock_price
@@ -138,7 +138,7 @@ def make_deps(settings: Settings, store: FilingStore, llm: ChatAnthropic, retrie
         # price and citations are filled deterministically by the graph, not here
         ext = LLMExtraction()
         if chunks:
-            cited = set(MARKER_RE.findall(answer))
+            cited = set(marker_ids(answer))
             ctx_chunks = [c for c in chunks if c.chunk_id in cited] or chunks
             res = extractor.invoke([("system", EXTRACT_SYSTEM),
                                     ("human", f"QUESTION\n{question}\n\nANSWER\n{answer}\n\nCONTEXT\n{format_context(ctx_chunks, [])}")])
