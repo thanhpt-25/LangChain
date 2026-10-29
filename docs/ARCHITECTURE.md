@@ -1,341 +1,417 @@
 # Kiến trúc ứng dụng FinAssist
 
-`finassist` là trợ lý AI tài chính chỉ phục vụ ba công ty: Apple (AAPL), Microsoft (MSFT) và NVIDIA (NVDA). Ứng dụng trả lời hai loại thông tin có bản chất khác nhau:
+FinAssist là trợ lý tài chính cho ba công ty: Apple (AAPL), Microsoft (MSFT) và NVIDIA (NVDA). Ứng dụng nhận hai loại câu hỏi và xử lý chúng bằng hai cơ chế khác nhau.
 
-- Thông tin trong báo cáo 10-K: được tìm trong kho dữ liệu nội bộ bằng RAG và phải có trích dẫn.
-- Giá, vốn hóa thị trường, P/E hiện tại: được lấy bằng công cụ tất định, không để LLM tự tạo.
+- Câu hỏi về nội dung báo cáo 10-K (doanh thu, EPS, rủi ro, MD&A) được trả lời bằng RAG trên một kho Chroma chạy cục bộ, kèm trích dẫn đến từng đoạn nguồn.
+- Câu hỏi về giá, vốn hóa và P/E được trả lời bằng một công cụ gọi yfinance. Những con số này đổi theo từng phút nên LLM không được tự đưa ra.
 
-Ứng dụng không tư vấn mua/bán, không dự đoán giá và từ chối các câu hỏi nằm ngoài phạm vi. Tài liệu này giải thích thành phần, đường đi của control flow và data flow, hàng rào an toàn, cũng như lý do của các quyết định chính. Tất cả mô tả dựa trên mã nguồn hiện tại trong `src/finassist/`.
+Câu hỏi nằm ngoài hai loại trên bị từ chối, gồm tư vấn mua bán, dự đoán giá và các công ty khác.
 
-## 1. Cách đọc nhanh
+Tài liệu mô tả ứng dụng đúng như mã trong `src/finassist/`. Các mục đi theo thứ tự một người mới thường hỏi: hệ thống có những phần nào (mục 1 và 2), một câu hỏi đi qua đâu (mục 3), dữ liệu đến từ đâu và ai tạo ra nó (mục 4 và 5), khi có sự cố thì chuyện gì xảy ra (mục 6), vì sao thiết kế như vậy (mục 7) và những gì còn chưa tốt (mục 8).
 
-Người mới nên đọc theo thứ tự sau:
+## 1. Hệ thống nhìn từ bên ngoài
 
-1. **Bức tranh tổng thể** để biết ứng dụng phụ thuộc vào những hệ thống nào.
-2. **Control flow** để biết mỗi loại câu hỏi đi qua node nào.
-3. **Data flow** để biết dữ liệu nào do LLM tạo, dữ liệu nào được mã nguồn xác nhận.
-4. **Hàng rào an toàn** để hiểu tại sao kết quả có thể là `null` hoặc "không đủ thông tin".
-5. **Quyết định và giới hạn** trước khi diễn giải chất lượng của hệ thống.
-
-## 2. Bức tranh tổng thể
+Toàn bộ ứng dụng chạy trong một tiến trình Python. Embedding cũng chạy ngay trong tiến trình đó, nên chỉ có ba dịch vụ bên ngoài: router LLM, yfinance và SEC EDGAR. SEC EDGAR chỉ được gọi lúc chuẩn bị dữ liệu, còn LangSmith chỉ nhận trace khi được bật.
 
 ```mermaid
 flowchart LR
-    U[Người dùng\nCLI hoặc Streamlit] --> R[Runtime\nbuild_app / ask]
-    R --> G[LangGraph StateGraph]
+    subgraph prep["Chuẩn bị dữ liệu, chạy một lần"]
+        direction LR
+        SEC["SEC EDGAR"] --> Fetch["fetch_filings.py"]
+        Fetch --> Raw[("data/raw")]
+        Raw --> Ingest["finassist ingest"]
+    end
 
-    G --> C[LLM router\nPhân loại ý định]
-    G --> P[Công cụ giá\nyfinance + cache]
-    G --> V[Kho Chroma\n10-K embeddings]
-    G --> A[LLM trả lời\nvà trích cấu trúc]
-    G --> S[Kiểm chứng tất định\ncitation, số, giá]
+    subgraph run["Khi có câu hỏi"]
+        direction LR
+        User["Người dùng"] --> Entry["CLI hoặc Streamlit"]
+        Entry --> App["FinAssist<br/>một tiến trình Python"]
+    end
 
-    P --> Y[(yfinance)]
-    P --> PC[(data/cache/prices.json)]
-    V --> DB[(data/chroma)]
-    V --> E[Embedding cục bộ\nbge-small-en-v1.5]
-    S --> O[FinanceAnswer\nJSON + văn bản + citations]
-    O --> U
-
-    R -. trace tùy chọn .-> L[LangSmith]
+    Ingest --> Chroma[("data/chroma")]
+    App -->|"tìm đoạn 10-K"| Chroma
+    App -->|"phân loại, trả lời, trích field"| LLM["LLM qua router<br/>kr/claude-sonnet-5.5"]
+    App -->|"giá, vốn hóa, P/E"| YF["yfinance"]
+    App <-->|"đọc và ghi"| PriceCache[("data/cache/prices.json")]
+    App -.->|"trace, nếu bật"| LS["LangSmith"]
 ```
 
-### Ranh giới trách nhiệm
+Hai nhóm ở trên chạy ở hai thời điểm khác nhau. Nhóm chuẩn bị chạy một lần trước khi dùng và để lại kho Chroma. Nhóm thứ hai chạy mỗi khi có câu hỏi và đọc kho đó.
 
-| Thành phần | Trách nhiệm | Không chịu trách nhiệm cho |
-|---|---|---|
-| CLI / Streamlit | nhận câu hỏi, hiển thị hoặc phát lại kết quả đã ghi | suy luận tài chính, tìm kiếm, tạo citation |
-| `runtime.py` | lắp LLM, embedding, Chroma và đồ thị; gọi đồ thị với metadata trace | quyết định node nào chạy |
-| `graph.py` | điều phối control flow và áp các quy tắc an toàn không được giao cho LLM | gọi trực tiếp API nhà cung cấp |
-| `chains.py` | prompt, gọi LLM và chuyển lời gọi bên ngoài thành `Deps` | tin tuyệt đối vào output của LLM |
-| `vectorstore.py` | tìm các đoạn 10-K theo ticker | xác nhận một con số có đúng nghĩa hay không |
-| `tools.py` | lấy giá, lưu cache an toàn, báo dữ liệu cũ/không có dữ liệu | giải thích rủi ro kinh doanh |
-| `postprocess.py` | chỉ giữ citation hợp lệ và loại số không có trong context | tạo câu trả lời mới |
+## 2. Các thành phần
 
-Tách biệt này quan trọng: LLM là thành phần tạo ngôn ngữ, nhưng đường đi, giá, citation và kiểm tra số liệu vẫn nằm trong mã tất định có thể unit test.
-
-## 3. Thành phần và dữ liệu mà chúng quản lý
+### 2.1 Ai gọi ai
 
 ```mermaid
 flowchart TB
-    subgraph Interface[Điểm vào]
-      CLI[finassist ingest / ask]
-      UI[Streamlit]
-      Replay[Record / Replay]
+    subgraph entry["Điểm vào"]
+        cli["cli.py"]
+        ui["app/streamlit_app.py"]
+        ev["eval/run_ragas.py"]
     end
 
-    subgraph Application[Lớp ứng dụng]
-      Runtime[runtime.py]
-      Graph[graph.py]
-      Chains[chains.py]
-      Schema[schemas.py]
-      Post[postprocess.py]
+    rt["runtime.py<br/>build_app, ask"]
+
+    subgraph core["Điều phối"]
+        gr["graph.py<br/>StateGraph và giao diện Deps"]
+        chains["chains.py<br/>prompt, gọi LLM, ghép Deps"]
     end
 
-    subgraph Data[Dữ liệu và adapter]
-      Ingest[ingest.py]
-      Store[vectorstore.py / Chroma]
-      Price[tools.py]
-      Raw[(data/raw\n10-K HTML + metadata)]
-      Cache[(prices.json)]
+    subgraph support["Adapter và kiểm chứng"]
+        vs["vectorstore.py"]
+        tools["tools.py"]
+        post["postprocess.py"]
     end
 
-    CLI --> Runtime
-    UI --> Runtime
-    Replay --> CLI
-    Runtime --> Graph
-    Runtime --> Chains
-    Graph --> Post
-    Chains --> Store
-    Chains --> Price
-    Ingest --> Raw
-    Ingest --> Store
-    Price --> Cache
-    Schema --- Graph
-    Schema --- Chains
-    Schema --- Post
+    cli --> rt
+    ui --> rt
+    ev --> rt
+    rt --> gr
+    rt --> chains
+    chains -->|"hiện thực Deps"| gr
+    chains --> vs
+    chains --> tools
+    chains --> post
+    gr --> post
 ```
 
-### 3.1 Nạp dữ liệu 10-K: luồng chạy trước khi hỏi
+`schemas.py` (các kiểu dữ liệu) và `config.py` (cấu hình) được hầu hết các module dùng nên không vẽ vào sơ đồ.
 
-Đây là luồng **offline/chuẩn bị**, không chạy cho từng câu hỏi.
+Điểm đáng nhìn kỹ là mũi tên giữa `chains.py` và `graph.py`. `graph.py` không biết gì về LLM, Chroma hay yfinance. Nó chỉ biết một dataclass `Deps` gồm năm hàm: `classify`, `retrieve`, `price`, `generate`, `structure`. `chains.py` hiện thực năm hàm đó bằng các dịch vụ thật, còn test thay chúng bằng hàm giả. Nhờ vậy toàn bộ logic điều hướng và kiểm chứng chạy được trong unit test mà không cần mạng.
 
-```mermaid
-flowchart LR
-    SEC[SEC EDGAR\n10-K HTML] --> Fetch[scripts/fetch_filings.py]
-    Fetch --> Raw[data/raw/TICKER.html\nvà TICKER.json]
-    Raw --> Parse[ingest.html_to_text]
-    Parse --> Split[split_items\n1, 1A, 7, 7A, 8, 15]
-    Split --> Chunk[chunk_filing\n1.000 ký tự, overlap 150]
-    Chunk --> Embed[Embedding cục bộ]
-    Embed --> Chroma[(data/chroma)]
-```
+### 2.2 Từng module làm gì
 
-Mỗi đoạn có `chunk_id` ổn định, ví dụ `AAPL-2025-1A-012`, và metadata gồm ticker, năm tài chính, Item và URL nguồn. `FilingStore.upsert` dùng `chunk_id` làm ID Chroma, nên chạy ingest lại không tạo thêm bản sao.
+| Module | Nhận vào | Trả ra | Gọi dịch vụ ngoài |
+|---|---|---|---|
+| `cli.py` | dòng lệnh `ingest` hoặc `ask` | văn bản và JSON in ra terminal, file record | không (qua `runtime`) |
+| `app/streamlit_app.py` | câu hỏi trong ô nhập | trang web: câu trả lời, citation, chunk, JSON | không (qua `runtime`) |
+| `runtime.py` | cấu hình | `build_app()` dựng đồ thị hoàn chỉnh, `ask()` chạy một câu hỏi kèm tag và metadata trace | không |
+| `graph.py` | `Deps` | đồ thị LangGraph biên dịch sẵn | không |
+| `chains.py` | `Settings`, kho Chroma, client LLM | một `Deps` thật; chứa ba prompt (phân loại, trả lời, trích field) | router LLM |
+| `vectorstore.py` | danh sách `Chunk`, câu truy vấn | `search(query, ticker, k)` trả `Chunk` kèm khoảng cách | Chroma, mô hình embedding cục bộ |
+| `tools.py` | mã ticker | `PriceInfo` (giá, vốn hóa, P/E, `as_of`, `stale`) hoặc lỗi `PriceUnavailable` | yfinance, file cache |
+| `postprocess.py` | câu trả lời, các chunk đã retrieve | danh sách `Citation` hợp lệ; `FinanceAnswer` đã bỏ số không có trong chunk | không |
+| `ingest.py` | HTML của 10-K | các `Chunk` có metadata | không |
+| `schemas.py` | không | các kiểu Pydantic dùng chung | không |
+| `config.py` | file `.env` và biến môi trường | `Settings` | không |
 
-Parser chỉ giữ Item 1, 1A, 7, 7A, 8 và 15. Item 15 cần thiết vì 10-K của NVIDIA để nhiều báo cáo tài chính ở đó. Parser cũng gộp running header lặp liên tiếp, tránh chia sai Item 8 của Microsoft thành nhiều phần.
+### 2.3 Các kiểu dữ liệu chính
 
-### 3.2 Mô hình dữ liệu cốt lõi
-
-| Kiểu | Ý nghĩa | Nguồn tạo ra |
+| Kiểu | Chứa gì | Ai tạo |
 |---|---|---|
-| `Chunk` | một đoạn 10-K cùng metadata và khoảng cách truy hồi `score` | ingestion hoặc Chroma search |
-| `PriceInfo` | giá, vốn hóa, P/E, thời điểm `as_of`, cờ `stale` | `get_stock_price` |
-| `IntentResult` | intent, ticker, ngôn ngữ và `search_query` | LLM classifier, sau đó được graph lọc |
-| `Citation` | nguồn, Item, `chunk_id`, 200 ký tự đầu của đoạn | `extract_citations`, không do LLM tạo |
-| `FinanceAnswer` | output cuối: văn bản, JSON cấu trúc, giá và citations | graph kết hợp LLM với dữ liệu tất định |
+| `Chunk` | một đoạn 10-K: `chunk_id`, text, ticker, năm tài chính, Item, khoảng cách `score` | `ingest.py`, rồi `vectorstore.search` |
+| `PriceInfo` | giá, vốn hóa, P/E, thời điểm `as_of`, cờ `stale` | `tools.get_stock_price` |
+| `IntentResult` | intent, danh sách ticker, `language`, `search_query` | LLM phân loại |
+| `LLMExtraction` | `ticker`, `fiscal_year`, `revenue`, `eps`, `risk_factors` | LLM trích field |
+| `Citation` | nguồn, Item, `chunk_id`, 200 ký tự đầu của chunk | `postprocess.extract_citations` |
+| `FinanceAnswer` | kết quả cuối cùng của một câu hỏi | `graph.py`, ghép từ LLM và dữ liệu tất định |
 
-`FinanceAnswer.revenue` dùng đơn vị **triệu USD**, đúng như số in trong filing. `stock_price` chỉ được đặt khi có đúng một ticker; `stock_prices` luôn có thể chứa danh sách giá cho câu hỏi nhiều công ty.
+`revenue` luôn tính bằng triệu USD, đúng như số in trong 10-K.
 
-## 4. Control flow: đồ thị xử lý câu hỏi
+## 3. Control flow: một câu hỏi đi qua những node nào
 
-`build_graph` trong `graph.py` tạo một `StateGraph` gồm sáu node. Hai cạnh điều kiện quyết định đường đi.
+Đồ thị có sáu node và hai điểm rẽ nhánh. Điểm rẽ đầu tiên đọc `intent` do `classify_intent` ghi ra. Điểm rẽ thứ hai nằm sau `price_tool` và quyết định có cần tra thêm 10-K hay không.
 
 ```mermaid
 flowchart TD
-    Start([Bắt đầu: question]) --> Classify[classify_intent]
-    Classify -->|price| Price[price_tool]
-    Classify -->|filing| Retrieve[retrieve]
-    Classify -->|both| Price
-    Classify -->|out_of_scope| Refuse[refuse]
+    Start(["question"]) --> Classify["classify_intent"]
+    Classify -->|"price"| Price["price_tool"]
+    Classify -->|"both"| Price
+    Classify -->|"filing"| Retrieve["retrieve"]
+    Classify -->|"out_of_scope"| Refuse["refuse"]
 
-    Price -->|price| Generate[generate_answer]
-    Price -->|both| Retrieve
+    Price -->|"intent là both"| Retrieve
+    Price -->|"intent là price"| Generate["generate_answer"]
     Retrieve --> Generate
-    Generate --> Format[format_output]
-    Format --> End([Kết thúc: FinanceAnswer])
+    Generate --> Format["format_output"]
+
+    Format --> End(["FinanceAnswer"])
     Refuse --> End
 ```
 
-### 4.1 Ý nghĩa của từng nhánh
+### 3.1 Bốn đường đi
 
-| Intent | Khi nào dùng | Node chạy | Điều không xảy ra |
+| Intent | Khi nào | Đường đi | Số lần gọi LLM |
 |---|---|---|---|
-| `price` | chỉ cần giá, vốn hóa hoặc P/E | `classify_intent → price_tool → generate_answer → format_output` | không truy hồi 10-K, không có citation filing |
-| `filing` | chỉ cần thông tin trong 10-K | `classify_intent → retrieve → generate_answer → format_output` | không gọi nguồn giá |
-| `both` | cần cả dữ liệu thị trường và filing | `classify_intent → price_tool → retrieve → generate_answer → format_output` | không bỏ qua một trong hai nguồn |
-| `out_of_scope` | công ty khác, dự đoán giá, tư vấn mua/bán, nội dung không phải tài chính trong phạm vi | `classify_intent → refuse` | không gọi giá, Chroma hay LLM tạo câu trả lời |
+| `price` | chỉ cần giá, vốn hóa hoặc P/E | classify → price_tool → generate → format | 2 |
+| `filing` | chỉ cần thông tin trong 10-K | classify → retrieve → generate → format | 3 |
+| `both` | cần cả giá và 10-K | classify → price_tool → retrieve → generate → format | 3 |
+| `out_of_scope` | công ty khác, tư vấn đầu tư, dự đoán giá, chủ đề không liên quan | classify → refuse | 1 |
 
-Ví dụ, câu “Should I buy NVIDIA stock now?” dừng ở `refuse`. Điều này giới hạn chi phí, tránh đưa context không liên quan vào LLM và tránh biến câu trả lời thành lời khuyên đầu tư.
+Số lần gọi LLM là số lần tối thiểu. `generate_answer` có thể gọi thêm một lần khi câu trả lời về filing chưa có citation hợp lệ. Câu `price` chỉ gọi LLM hai lần vì không có chunk nào để trích field, nên `structure` bỏ qua bước gọi LLM.
 
-### 4.2 Nhiệm vụ của sáu node
+Câu "Should I buy NVIDIA stock now?" dừng ở `refuse`. Trace thật của câu này chỉ có `classify_intent` và `refuse`, mất khoảng 0,25 giây, không đụng tới giá, Chroma hay bước sinh câu trả lời.
 
-| Node | Đọc từ state | Ghi vào state | Hành vi quan trọng |
+### 3.2 Mỗi node làm gì
+
+State của đồ thị là một `TypedDict` tên `GraphState`. Mỗi node đọc một vài khóa và ghi lại một vài khóa.
+
+| Node | Đọc | Ghi | Hành vi |
 |---|---|---|---|
-| `classify_intent` | `question` | `intent`, `tickers`, `search_query`, các danh sách rỗng ban đầu | chuẩn hóa ticker, bỏ ticker ngoài AAPL/MSFT/NVDA; không có ticker hợp lệ thì chuyển thành `out_of_scope` |
-| `price_tool` | `tickers` | `price_data`, có thể `error` | lấy lần lượt từng ticker; một ticker lỗi không làm hỏng toàn bộ câu hỏi |
-| `retrieve` | `search_query`, `tickers` | `retrieved_chunks` | lấy top-k theo từng ticker, lọc ngay trong Chroma theo metadata ticker |
-| `generate_answer` | câu hỏi gốc, chunks, giá, lỗi | `answer`, có thể `error`, `short_circuit` | LLM chỉ dùng context; câu filing phải có marker citation hợp lệ |
-| `format_output` | toàn bộ output trung gian | `output: FinanceAnswer` | LLM trích field, sau đó graph ghi đè citation và giá bằng dữ liệu tất định |
-| `refuse` | không cần dữ liệu khác | `answer`, `output` | trả mẫu từ chối cố định song ngữ |
+| `classify_intent` | `question` | `intent`, `tickers`, `search_query`, và khởi tạo `retrieved_chunks=[]`, `price_data=[]`, `error=None`, `short_circuit=False` | Chuẩn hóa ticker (cắt khoảng trắng, viết hoa), bỏ ticker ngoài AAPL/MSFT/NVDA. Nếu intent cần dữ liệu mà không còn ticker hợp lệ thì đổi thành `out_of_scope`. |
+| `price_tool` | `tickers` | `price_data`, `error` | Lấy giá từng ticker. Ticker nào lỗi thì ghi lý do vào `error`, các ticker còn lại vẫn chạy bình thường. |
+| `retrieve` | `search_query`, `tickers` | `retrieved_chunks` | Với mỗi ticker lấy top-k chunk (mặc định k = 5), lọc theo ticker ngay trong truy vấn Chroma. |
+| `generate_answer` | câu hỏi gốc, chunk, giá | `answer`, và có thể `error`, `short_circuit` | Gọi LLM với context gồm chunk và khối `PRICE DATA`. Với câu cần filing, kiểm tra citation và thử lại nếu thiếu (xem mục 5.2). |
+| `format_output` | toàn bộ state | `output` (`FinanceAnswer`) | Gọi LLM trích field, rồi ghi đè citation và giá bằng dữ liệu tất định. |
+| `refuse` | không đọc gì | `answer`, `output` | Trả mẫu từ chối song ngữ cố định. |
 
-## 5. Data flow của một câu hỏi `both`
+`search_query` luôn có giá trị sau `classify_intent`: bằng câu hỏi gốc, trừ khi người dùng hỏi bằng ngôn ngữ khác tiếng Anh (xem mục 4.4).
 
-Ví dụ: **“What is NVIDIA's current stock price and how do export controls threaten it?”**
+## 4. Data flow: dữ liệu đến từ đâu và đi đâu
+
+### 4.1 Nạp 10-K, chạy trước khi hỏi
+
+```mermaid
+flowchart TD
+    SEC["SEC EDGAR<br/>10-K mới nhất"] --> Fetch["fetch_filings.py"]
+    Fetch --> Raw["data/raw/TICKER.html<br/>và TICKER.json"]
+    Raw --> Text["html_to_text<br/>bỏ script, style, ix:header"]
+    Text --> Split["split_items<br/>giữ Item 1, 1A, 7, 7A, 8, 15"]
+    Split --> Chunk["chunk_filing<br/>1.000 ký tự, chồng 150"]
+    Chunk --> Embed["embedding bge-small-en<br/>chạy cục bộ"]
+    Embed --> Chroma[("data/chroma")]
+```
+
+Mỗi chunk có `chunk_id` ổn định, ví dụ `AAPL-2025-1A-012` (ticker, năm tài chính, Item, số thứ tự trong Item). Chroma dùng chính `chunk_id` làm khóa nên chạy `finassist ingest` lần hai không tạo thêm bản sao: kho có 1.162 chunk (AAPL 256, MSFT 451, NVDA 455) và con số này không đổi sau mỗi lần nạp.
+
+Hai chi tiết của 10-K thật đã ảnh hưởng tới parser:
+
+- 10-K liệt kê mỗi Item hai lần, một lần trong mục lục và một lần ở phần thân. `split_items` giữ đoạn dài nhất của mỗi Item, tức là phần thân. Dòng bắt đầu bằng "Item 1A" nhưng nằm giữa một câu tham chiếu (ví dụ "see Item 1A of this Form") bị loại bằng `_is_heading`.
+- Microsoft in lại tiêu đề "PART II / Item N" ở đầu mỗi trang, làm một Item bị cắt thành nhiều phần. Parser gộp các tiêu đề lặp liên tiếp của cùng một Item.
+- NVIDIA để phần lớn báo cáo tài chính ở Item 15, còn Item 8 chỉ có một đoạn ngắn. Vì vậy Item 15 nằm trong danh sách giữ lại.
+
+### 4.2 Trả lời một câu hỏi `both`
+
+Ví dụ lấy từ một trace LangSmith thật: "What is NVIDIA's current stock price and how do export controls threaten it?"
 
 ```mermaid
 sequenceDiagram
     participant U as Người dùng
-    participant G as LangGraph
+    participant G as Đồ thị LangGraph
     participant L as LLM
-    participant P as Price tool
+    participant P as price_tool
     participant V as Chroma
-    participant X as Postprocess
+    participant X as postprocess
 
     U->>G: question
-    G->>L: phân loại intent + ticker
-    L-->>G: both, NVDA
+    G->>L: phân loại (prompt hệ thống + câu hỏi)
+    L-->>G: intent=both, tickers=[NVDA]
     G->>P: get_stock_price(NVDA)
-    P-->>G: PriceInfo hoặc PriceUnavailable
-    G->>V: search(search_query, NVDA, top_k)
-    V-->>G: các Chunk + score
-    G->>L: context gồm chunks và PRICE DATA
-    L-->>G: answer có [chunk_id]
-    G->>L: trích revenue/EPS/risk factors có cấu trúc
+    P-->>G: PriceInfo (giá, vốn hóa, P/E, stale=false)
+    G->>V: search(search_query, NVDA, k=5)
+    V-->>G: 5 Chunk kèm khoảng cách
+    G->>L: context = 5 chunk + khối PRICE DATA, kèm câu hỏi gốc
+    L-->>G: answer có marker [chunk_id]
+    G->>X: extract_citations(answer, chunks)
+    X-->>G: citation hợp lệ (đã đối chiếu với chunk vừa retrieve)
+    G->>L: trích field từ answer và các chunk được trích dẫn
     L-->>G: LLMExtraction
-    G->>X: kiểm citation và grounding số
-    X-->>G: citations hợp lệ, số được giữ/null
-    G-->>U: FinanceAnswer
+    G->>X: ground_numbers(output, chunks)
+    X-->>G: FinanceAnswer đã bỏ số không có trong chunk
+    G-->>U: FinanceAnswer, giá và citation gắn bằng mã tất định
 ```
 
-Luồng thực tế trong trace LangSmith `01a18548-f611-70d1-ad75-5bb267a4a30e` đi theo đúng nhánh trên:
+Thời gian từng bước trong trace đó:
 
-| Bước | Thành phần | Dữ liệu truyền đi | Ý nghĩa |
-|---|---|---|---|
-| 1 | `classify_intent` | câu hỏi → `intent=both`, `tickers=[NVDA]` | chọn cả nguồn giá và 10-K |
-| 2 | `price_tool` | `NVDA` → `PriceInfo` | tạo dữ liệu giá có thời điểm và cờ `stale` |
-| 3 | `retrieve` | `search_query`, `NVDA` → 5 chunk | trace có các chunk Item 1A và Item 15, gồm `NVDA-2026-1A-126` |
-| 4 | `generate_answer` | câu hỏi gốc + chunk + khối PRICE DATA → văn bản | claim về filing phải kết thúc bằng ID chunk; giá không dùng citation filing |
-| 5 | `format_output` | văn bản + context → extraction, sau đó postprocess | giao diện nhận một `FinanceAnswer` nhất quán |
+| Bước | Thời gian | Dữ liệu ra |
+|---|---|---|
+| `classify_intent` | 0,30 giây | `intent=both` |
+| `price_tool` | 1,67 giây | giá NVDA 215,38 USD, vốn hóa khoảng 5,2 nghìn tỷ USD, P/E 27,54 |
+| `retrieve` | 0,74 giây | 5 chunk: `NVDA-2026-1A-126`, `1A-106`, `15-085`, `15-025`, `15-020` |
+| `generate_answer` | 5,50 giây | câu trả lời có marker citation |
+| `format_output` | 5,27 giây | `FinanceAnswer` hoàn chỉnh |
+| Tổng | 13,65 giây | |
 
-Trace dạng văn bản và URL LangSmith nằm trong [`docs/evidence/trace_tree.md`](evidence/trace_tree.md) và [`docs/evidence/links.md`](evidence/links.md). Giá trong trace là snapshot lịch sử; khi trình bày kết quả live luôn dùng `as_of` của lần gọi hiện tại.
+Hai bước chiếm gần hết thời gian đều là lời gọi LLM. URL trace và bản text của cây trace nằm ở [`evidence/links.md`](evidence/links.md) và [`evidence/trace_tree.md`](evidence/trace_tree.md). Giá trong trace là ảnh chụp tại thời điểm đó, vì vậy khi demo hãy đọc `as_of` của lần chạy hiện tại.
 
-## 6. Câu hỏi tiếng Việt: tách ngôn ngữ hiển thị và ngôn ngữ truy hồi
+### 4.3 LLM nhìn thấy gì
 
-10-K và embedding `BAAI/bge-small-en-v1.5` chủ yếu là tiếng Anh, trong khi người dùng có thể hỏi tiếng Việt. Nếu tìm bằng nguyên văn câu tiếng Việt, các đoạn rủi ro tiếng Anh có thể không xuất hiện trong top-k.
+Ba lời gọi LLM nhận ba loại đầu vào khác nhau.
 
-Vì vậy, classifier luôn trả thêm:
+- Phân loại: prompt hệ thống mô tả bốn intent và danh sách ba ticker, cùng một tin nhắn dạng `QUESTION` rồi đến câu hỏi. Kết quả trả về theo schema `IntentResult`.
+- Trả lời: prompt hệ thống ra luật (chỉ dùng context, mỗi khẳng định về filing phải kết thúc bằng `[chunk_id]`, không tư vấn đầu tư, trả lời bằng ngôn ngữ của người hỏi), tiếp theo là context và câu hỏi gốc. Context gồm từng chunk có tiêu đề `[chunk_id] (ticker năm Item)` và, nếu có, một khối `PRICE DATA` ghi rõ `stale`.
+- Trích field: câu hỏi, câu trả lời và các chunk mà câu trả lời đã trích dẫn. Nếu câu trả lời không trích chunk nào thì dùng toàn bộ chunk. Kết quả theo schema `LLMExtraction`.
 
-- `language`: `en` hoặc `other`;
-- `search_query`: bản viết lại tiếng Anh của câu hỏi khi ngôn ngữ là `other`.
+### 4.4 Câu hỏi tiếng Việt
+
+Embedding `bge-small-en-v1.5` và 10-K đều là tiếng Anh. Nếu tìm bằng nguyên văn câu tiếng Việt, khoảng cách tới các đoạn đúng lớn tới mức chúng không lọt vào top-k. Khi đo thử với câu rủi ro kiểm soát xuất khẩu của NVIDIA, top-5 không có chunk Item 1A nào (khoảng cách 0,71 đến 0,74), trong khi câu tiếng Anh tương đương cho khoảng cách 0,26.
+
+Vì vậy bộ phân loại trả thêm hai trường:
+
+- `language`: `en` hoặc `other`.
+- `search_query`: bản viết lại bằng tiếng Anh, chỉ có khi `language` là `other`.
 
 ```mermaid
 flowchart LR
-    Q[Câu hỏi tiếng Việt] --> C[Classifier]
-    C --> SQ[search_query tiếng Anh]
-    SQ --> R[Chroma retrieve]
-    Q --> G[Generate answer]
+    Q["Câu hỏi tiếng Việt"] --> C["classify_intent"]
+    C -->|"language = other"| SQ["search_query tiếng Anh"]
+    SQ --> R["retrieve"]
+    Q --> G["generate_answer"]
     R --> G
-    G --> A[Câu trả lời bằng ngôn ngữ người hỏi]
+    G --> A["Câu trả lời tiếng Việt"]
 ```
 
-`retrieve` dùng `search_query`, nhưng `generate_answer` vẫn nhận `question` gốc và prompt yêu cầu trả lời theo ngôn ngữ của người hỏi. Với câu tiếng Anh, graph bỏ `search_query` do LLM trả và tìm bằng câu gốc để không thay đổi hành vi hiện có. Nếu bản viết lại trống, graph cũng quay về dùng câu gốc.
+`retrieve` dùng `search_query`, còn `generate_answer` vẫn nhận câu hỏi gốc nên câu trả lời giữ ngôn ngữ của người hỏi. Với câu tiếng Anh, đồ thị bỏ qua `search_query` và tìm bằng câu gốc. Nhờ vậy điểm RAGAS baseline, vốn đo bằng câu tiếng Anh, không bị ảnh hưởng. Sau khi sửa, câu NVIDIA ở trên lấy được 5/5 chunk Item 1A với khoảng cách 0,27 đến 0,47.
 
-## 7. Hàng rào chống câu trả lời sai hoặc không kiểm chứng được
+## 5. Ai quyết định điều gì
+
+LLM được dùng cho phần ngôn ngữ: hiểu câu hỏi, viết câu trả lời, đọc văn bản để trích số. Những phần có thể kiểm bằng mã thì mã làm.
+
+```mermaid
+flowchart LR
+    subgraph llm["Do LLM tạo"]
+        I["intent, tickers,<br/>search_query"]
+        A["answer"]
+        E["revenue, eps,<br/>risk_factors"]
+    end
+
+    subgraph code["Do mã tất định tạo"]
+        C["citations"]
+        S["stock_price,<br/>stock_prices"]
+        T["ticker, fiscal_year"]
+        N["ground_numbers"]
+    end
+
+    I -->|"graph lọc ticker"| Route["đường đi trong đồ thị"]
+    A --> Out["FinanceAnswer"]
+    E --> N
+    N -->|"giữ hoặc đặt null"| Out
+    C --> Out
+    S --> Out
+    T --> Out
+```
+
+| Trường của `FinanceAnswer` | Nguồn | Ghi chú |
+|---|---|---|
+| `intent` | LLM, sau khi graph lọc | Intent cần dữ liệu mà không còn ticker hợp lệ thì thành `out_of_scope` |
+| `answer` | LLM, hoặc mẫu cố định | Mẫu cố định gồm từ chối, không đủ thông tin, không có giá |
+| `citations` | mã | Chỉ tạo từ marker `[chunk_id]` có trong các chunk vừa retrieve của lần chạy này |
+| `stock_price`, `stock_prices` | mã (`price_tool`) | `stock_price` chỉ có khi đúng một ticker; nhiều ticker thì dùng `stock_prices` |
+| `ticker`, `fiscal_year` | mã | Nếu mọi chunk thuộc một ticker thì lấy ticker và năm lớn nhất của chunk. Nhiều ticker thì `fiscal_year` là null. Câu chỉ có một ticker mà output chưa có ticker thì điền từ state. |
+| `revenue`, `eps`, `risk_factors` | LLM trích | `revenue` và `eps` còn phải qua `ground_numbers` |
+
+### 5.1 Citation
+
+Câu trả lời của LLM chứa marker dạng `[AAPL-2025-1A-012]`. `extract_citations` đọc các marker này và chỉ giữ lại marker có `chunk_id` nằm trong danh sách chunk đã retrieve của chính lần chạy đó, loại trùng và giữ thứ tự xuất hiện. LLM có thể viết ra một ID nghe hợp lý nhưng không được retrieve; ID đó không bao giờ thành citation.
+
+### 5.2 Vòng kiểm tra trong `generate_answer`
 
 ```mermaid
 flowchart TD
-    A[LLM tạo answer] --> B{Câu cần filing?}
-    B -->|Không| P[Gắn giá từ tool]
-    B -->|Có| C{Có marker chunk hợp lệ?}
-    C -->|Có| D[Trích citation từ retrieved_chunks]
-    C -->|Không| E[Thử tạo lại một lần]
-    E --> F{Đã có citation?}
-    F -->|Có| D
-    F -->|Không| I[INSUFFICIENT_TEXT + error=missing_citation]
-    D --> N[ground_numbers]
-    N --> P
-    P --> O[FinanceAnswer]
+    Start["generate_answer"] --> NeedF{"Intent cần filing?"}
+    NeedF -->|"có, nhưng không có chunk"| Insuff["INSUFFICIENT_TEXT<br/>short_circuit"]
+    NeedF -->|"intent là price, không có giá"| NoPrice["PRICE_UNAVAILABLE_TEXT<br/>short_circuit"]
+    NeedF -->|"các trường hợp còn lại"| Gen["gọi LLM sinh câu trả lời"]
+    Gen --> Check{"Cần filing và<br/>chưa có citation hợp lệ?"}
+    Check -->|"không"| Done["answer, kèm ghi chú thiếu giá nếu có"]
+    Check -->|"có, lần thử đầu"| Gen
+    Check -->|"có, lần thử thứ hai"| Fail["INSUFFICIENT_TEXT<br/>error = missing_citation<br/>short_circuit"]
 ```
 
-### 7.1 Citation
+Khi `short_circuit` là true, `format_output` bỏ qua lời gọi LLM trích field và trả ngay một `FinanceAnswer` chỉ có `answer`, `intent`, `ticker` (nếu chỉ có một ticker) và các giá đã lấy được. Cờ này là một khóa riêng trong state, không suy ra từ nội dung câu trả lời, vì một câu trả lời thật hoàn toàn có thể bắt đầu bằng đúng cụm "Không đủ thông tin".
 
-`extract_citations` chỉ chấp nhận marker đúng định dạng, ví dụ `[AAPL-2025-1A-012]`, **và** ID đó phải có trong `retrieved_chunks` của chính run hiện tại. Marker không có trong context bị bỏ qua; marker lặp chỉ xuất hiện một lần trong output. Vì vậy, LLM không thể thêm một ID trông có vẻ hợp lệ nhưng không được retrieve.
+Câu hỏi có hai ticker mà một ticker thiếu giá vẫn được trả lời. Câu trả lời được nối thêm một ghi chú `[Giá hiện không khả dụng / price unavailable: MSFT]` với tên các ticker thiếu.
 
-### 7.2 Số liệu tài chính
+### 5.3 Kiểm tra số liệu
 
-LLM chỉ hỗ trợ trích `revenue`, `eps` và `risk_factors` thành dữ liệu có cấu trúc. Sau đó `ground_numbers` kiểm tra chuỗi số đã in có xuất hiện như một số độc lập trong các chunk retrieved hay không. Nếu không, `revenue` hoặc `eps` bị đặt `null`.
+`ground_numbers` nhận `revenue` và `eps` do LLM trích, rồi kiểm xem chuỗi số tương ứng (ví dụ `416,161` hoặc `4.90`) có xuất hiện trong các chunk đã retrieve hay không. Phép kiểm chỉ chấp nhận một số đứng riêng, không phải một phần của số dài hơn: `6,161` không được tính là có mặt trong `416,161`. Nếu số không có, trường đó bị đặt về null.
 
-Đây là kiểm chứng về **sự xuất hiện trong context**, không phải kiểm chứng ngữ nghĩa của một bảng. Ví dụ một số có thể thuộc một cột hoặc phân khúc khác nhưng vẫn xuất hiện trong chunk. Do đó, `null` an toàn hơn là bịa, nhưng giá trị không phải `null` vẫn cần đọc cùng citation.
+Phép kiểm này trả lời câu hỏi "con số có nằm trong context không", không trả lời "con số có đúng nghĩa không". Mục 8 có một trường hợp thật cho thấy khác biệt đó.
 
-### 7.3 Dữ liệu giá và lỗi từng phần
+## 6. Khi có sự cố
 
-`get_stock_price` gọi `yfinance` trước. Nếu thành công, dữ liệu mới (`stale=false`) được ghi atomically vào `data/cache/prices.json`. Nếu gọi live thất bại hoặc `FINASSIST_PRICE_OFFLINE=1`, tool trả cache với `stale=true`. Nếu không có cache hợp lệ, tool ném `PriceUnavailable`.
+| Sự cố | Hành vi | Nơi xử lý |
+|---|---|---|
+| Router LLM không phản hồi | Lỗi nổi lên khỏi đồ thị. CLI in một dòng `error:` kèm gợi ý dùng `--replay`; Streamlit hiện `st.error`. | `cli.py`, `streamlit_app.py` |
+| yfinance lỗi hoặc không có mạng | Dùng giá trong cache, đánh dấu `stale=true` | `tools.get_stock_price` |
+| Không có cả mạng lẫn cache | Ném `PriceUnavailable`. Câu `price` trả `PRICE_UNAVAILABLE_TEXT`; câu `both` vẫn trả phần filing kèm ghi chú thiếu giá. | `price_tool`, `generate_answer` |
+| File `prices.json` hỏng hoặc sai định dạng | Bỏ qua kèm cảnh báo trong log; lần lấy giá live kế tiếp ghi đè lại file | `tools._read` |
+| Ghi cache bị gián đoạn | Ghi qua file tạm rồi `os.replace`, nên file cũ không bao giờ ở trạng thái ghi dở | `tools._write_atomic` |
+| Không retrieve được chunk nào | `INSUFFICIENT_TEXT`, không gọi LLM | `generate_answer` |
+| LLM trả lời về filing mà không có citation hợp lệ sau hai lần | `INSUFFICIENT_TEXT`, `error=missing_citation` | `generate_answer` |
+| Trích field có cấu trúc thất bại | Đọc lại từ tham số tool call thô, từng field một; nếu vẫn không được thì dùng extraction rỗng và ghi cảnh báo | `chains.coerce_extraction` |
+| Số trích ra không có trong chunk | Đặt `revenue` hoặc `eps` về null | `ground_numbers` |
+| Chroma rỗng (quên chạy `ingest`) | Câu filing trả `INSUFFICIENT_TEXT` mà không báo kho trống | chưa xử lý |
+| Cần demo khi không có mạng | `finassist ask x --replay runs/demo.json`, hoặc ô Replay trong Streamlit. Replay không dựng app và không gọi dịch vụ nào. | `cli.py`, `streamlit_app.py` |
 
-Graph thu thập lỗi theo từng ticker thay vì làm hỏng run:
+## 7. Các quyết định kiến trúc
 
-- Câu `price` không lấy được bất kỳ giá nào trả `PRICE_UNAVAILABLE_TEXT`.
-- Câu `both` vẫn có thể trả lời phần filing, đồng thời thêm ghi chú ticker nào thiếu giá.
-- Với nhiều ticker, `stock_prices` giữ những giá lấy được; `stock_price` để `null` vì không thể đại diện cho một công ty duy nhất.
+### 7.1 Đồ thị có nhánh thay vì agent tự chọn công cụ
 
-### 7.4 Chặn câu ngoài phạm vi
+Bối cảnh: câu hỏi thuộc bốn loại với chi phí và rủi ro khác nhau. Câu xin tư vấn đầu tư không được chạm tới dữ liệu nào. Câu hỏi về giá không cần 10-K.
 
-Việc từ chối hiện dựa vào classifier, không có keyword rule thứ hai. Đây là một lựa chọn có chủ ý để hiểu ngữ cảnh câu hỏi tự nhiên, nhưng cũng là rủi ro: nếu classifier gán nhầm câu tư vấn đầu tư thành `price`, các node sau không có lớp chặn chuyên biệt. Các biến thể câu hỏi này cần được mở rộng trong integration test.
+Quyết định: dùng LangGraph `StateGraph` với hai cạnh điều kiện, intent do một lời gọi LLM phân loại ra, còn đường đi do mã quyết định.
 
-## 8. Output contract: `FinanceAnswer`
+Đã loại: agent kiểu ReAct, nơi LLM tự chọn công cụ ở mỗi bước. Đường đi khi đó khó đoán và khó đánh giá, và một demo có hỏi "câu này sẽ gọi công cụ nào" không có câu trả lời chắc chắn. Pipeline tuyến tính cũng bị loại vì nó không biểu diễn được nhánh "từ chối mà không truy hồi".
 
-| Trường | Ý nghĩa và nguồn tin cậy |
-|---|---|
-| `intent` | classifier đã được graph lọc theo phạm vi |
-| `answer` | LLM hoặc mẫu từ chối/không đủ thông tin |
-| `ticker`, `fiscal_year` | `structure()` điền tất định từ chunk: chỉ khi tập chunk thuộc một ticker thì đặt `ticker` và `fiscal_year` (năm lớn nhất); nhiều ticker thì `fiscal_year` để null; graph bổ sung `ticker` khi câu chỉ có một công ty |
-| `revenue`, `eps`, `risk_factors` | LLM extraction; `revenue`/`eps` còn phải qua `ground_numbers` |
-| `citations` | chỉ từ `extract_citations`, không tin vào object do LLM trả |
-| `stock_price`, `stock_prices` | chỉ từ công cụ giá, graph ghi đè mọi giá trị từ LLM |
+Cái giá: thêm một loại câu hỏi mới nghĩa là thêm node và cạnh.
 
-Contract này giúp CLI, Streamlit, record/replay và evaluator dùng cùng một hình dạng dữ liệu. `to_record` lưu cả `FinanceAnswer`, lỗi và nội dung chunk đã retrieve để một run có thể được tái hiện offline.
+### 7.2 Đồ thị chỉ biết `Deps`, không biết dịch vụ thật
 
-## 9. Quan sát và vận hành
+Quyết định: `graph.py` nhận một dataclass `Deps` gồm năm hàm. `chains.py` hiện thực chúng bằng LLM, Chroma và yfinance thật.
 
-`runtime.ask` gọi `app.invoke` với `run_name=finassist`, tag mặc định `demo` và metadata `app_version`. Khi biến `LANGSMITH_*` được cấu hình, LangChain ghi lại chuỗi node, lời gọi LLM, tool input/output và context retrieve lên LangSmith.
+Lý do: logic điều hướng, thử lại, chặn câu trả lời thiếu citation đều là mã thường, và test chúng bằng hàm giả nhanh hơn nhiều so với gọi LLM. Bộ unit test của dự án không gọi mạng hay LLM; các test cần router nằm sau cờ `RUN_INTEGRATION=1`.
 
-Các cách chạy chính:
+Cái giá: có một lớp gián tiếp, và chữ ký của năm hàm phải khớp ở cả hai phía.
+
+### 7.3 Citation do mã tạo, LLM chỉ viết marker
+
+Đã loại: để LLM trả về danh sách đối tượng citation. LLM có thể bịa ID, chép sai Item hoặc bịa đoạn trích mà không có gì phát hiện.
+
+Quyết định: LLM viết `[chunk_id]` vào câu trả lời, mã đối chiếu từng ID với các chunk vừa retrieve rồi mới dựng `Citation` (nguồn, Item, 200 ký tự đầu của chunk) từ chính chunk đó.
+
+Cái giá: phụ thuộc LLM chịu viết marker đúng định dạng, và định dạng hiện chỉ nhận một ID trong mỗi cặp ngoặc. Nếu LLM viết `[A, B]` thì không có citation nào được nhận, hệ thống thử lại một lần rồi trả `INSUFFICIENT_TEXT`.
+
+### 7.4 Giá đến từ công cụ, không đến từ LLM
+
+LLM không biết giá hôm nay. Đồ thị gọi `get_stock_price`, đưa kết quả vào context cho LLM diễn đạt, và khi dựng output thì ghi đè `stock_price` bằng dữ liệu từ công cụ, bất kể LLM trích ra gì. Mỗi giá mang theo `as_of` và `stale` để người đọc biết nó cũ đến đâu.
+
+### 7.5 Từ chối dựa vào bộ phân loại
+
+Việc từ chối câu ngoài phạm vi, kể cả xin tư vấn đầu tư, dựa hoàn toàn vào intent `out_of_scope` của bộ phân loại, cộng với luật "không tư vấn đầu tư" trong prompt trả lời. Không có danh sách từ khóa chặn hay lớp kiểm tra thứ hai. Lý do là câu hỏi tự nhiên có quá nhiều cách diễn đạt, và một danh sách từ khóa vừa chặn nhầm vừa bỏ sót. Cái giá là nếu bộ phân loại xếp nhầm một câu xin tư vấn thành `price`, không còn lớp nào chặn nó.
+
+### 7.6 Các quyết định còn lại
+
+| Quyết định | Đã loại | Lý do | Cái giá |
+|---|---|---|---|
+| Chia chunk theo Item rồi mới theo độ dài | Cắt đều toàn bộ filing | Đoạn rủi ro và bảng tài chính không bị trộn vào một chunk; mỗi chunk biết mình thuộc Item nào | Parser phải xử lý định dạng riêng của từng công ty (mục 4.1) |
+| Chroma với bộ lọc ticker trong truy vấn | FAISS | Chroma lọc ngay trong truy vấn. FAISS của LangChain lọc sau khi tìm `fetch_k` ứng viên, nên với kho ba công ty phải tăng `fetch_k` để chắc chắn đủ k kết quả cho một ticker | Thêm một dịch vụ lưu trữ cục bộ |
+| Embedding `bge-small-en-v1.5` chạy cục bộ | Embedding của OpenAI | Không cần thêm khóa API, filing không rời khỏi máy. Anthropic không có API embedding | Chỉ tiếng Anh, nên cần `search_query` cho câu tiếng Việt |
+| Top-k tính riêng cho từng ticker | Một truy vấn chung cho cả kho | Câu so sánh hai công ty có đủ context của cả hai | Prompt dài hơn khi hỏi nhiều ticker |
+| `search_query` chỉ dùng khi `language = other` | Viết lại mọi câu hỏi | Giữ nguyên hành vi, nên điểm RAGAS baseline vẫn có giá trị | Câu tiếng Anh diễn đạt vụng không được viết lại |
+| Ghim model `kr/claude-sonnet-5.5` | Các model `auto/*` của router | `auto/*` thường trả lỗi giới hạn tần suất từ upstream | Phụ thuộc một model cụ thể |
+| Record và replay | Chỉ chạy live | Demo vẫn chạy khi mất mạng hoặc router lỗi | Replay luôn hiện câu đã ghi, không phải câu mới gõ; Streamlit ghi rõ điều này |
+
+## 8. Giới hạn đã biết
+
+1. Retrieval bỏ lỡ chunk chứa bảng số liệu. Trong báo cáo RAGAS baseline, cả năm câu có điểm thấp nhất đều không lấy được chunk vàng. Ví dụ điển hình là lợi nhuận ròng và EPS của Microsoft: ba chunk chứa con số (`MSFT-2026-8-001`, `8-000`, `7-016`) đều không vào top-5, và hệ thống trả lời rằng nó không thấy số liệu.
+2. `ground_numbers` không hiểu ý nghĩa của con số. Ở q10 và q20 của baseline, hệ thống trả lời "total revenue 139,297" cho NVIDIA. Con số đó đến từ chunk `NVDA-2026-7-029`, một bảng theo mảng không có tiêu đề cột, và nó có thật trong chunk nên được giữ lại. Doanh thu thật là 215,938.
+3. Embedding chỉ có tiếng Anh. `search_query` giúp câu tiếng Việt, nhưng câu hỏi về bảng số liệu bằng tiếng Việt vẫn có thể trượt chunk.
+4. Từ chối chỉ có một lớp, như mục 7.5.
+5. LLM chạy ở `temperature=0` nên lần thử lại trong `generate_answer` có thể cho đúng câu trả lời cũ. Chưa có phép đo cho thấy lần thử thứ hai cải thiện được gì.
+6. Judge của RAGAS dùng cùng model với ứng dụng, nên điểm faithfulness có thể cao hơn thực tế.
+7. Marker citation chỉ nhận một ID trong mỗi cặp ngoặc (mục 7.3).
+8. Lời gọi yfinance chưa đặt timeout, nên mạng chậm có thể làm `price_tool` đứng lâu.
+
+Hướng cải thiện ưu tiên nằm trong [`NEXT_STEP.md`](NEXT_STEP.md): truy hồi kết hợp BM25 với vector, có reranker, và giữ tiêu đề cột khi cắt chunk bảng.
+
+## 9. Chạy và quan sát
 
 ```bash
-# Nạp 10-K vào Chroma
-uv run finassist ingest
-
-# Chạy live, có thể lưu một bản record
-uv run finassist ask "What is NVIDIA's current stock price and how do export controls threaten it?" --record runs/demo.json
-
-# Phát lại offline: câu hỏi truyền vào không được thực thi
-uv run finassist ask x --replay runs/demo.json
-
-# Mở giao diện; checkbox Replay dùng runs/demo.json
-uv run streamlit run app/streamlit_app.py
+uv run finassist ingest                    # nạp 10-K vào Chroma, chạy một lần
+uv run finassist ask "..."                 # chạy live
+uv run finassist ask "..." --record runs/demo.json   # chạy live và lưu kết quả
+uv run finassist ask x --replay runs/demo.json       # phát lại offline, câu hỏi truyền vào bị bỏ qua
+uv run streamlit run app/streamlit_app.py  # giao diện; ô Replay dùng runs/demo.json
 ```
 
-Để lấy URL trace mới nhất: `uv run python scripts/trace_link.py`.
+`runtime.ask` gọi đồ thị với `run_name=finassist`, tag mặc định `demo` và metadata `app_version`. Khi các biến `LANGSMITH_*` có trong `.env`, LangChain tự gửi trace gồm từng node, từng lời gọi LLM, đầu vào và đầu ra của `price_tool` và danh sách chunk của `retrieve`. Lệnh `uv run python scripts/trace_link.py` in URL của trace mới nhất.
 
-## 10. Quyết định kiến trúc và đánh đổi
+`eval/run_ragas.py` dùng cùng `build_app` và gắn tag `eval`, nên các lần chạy đánh giá tách được khỏi các lần demo trong LangSmith.
 
-| Quyết định | Phương án chọn | Lý do và đánh đổi |
-|---|---|---|
-| Điều phối | LangGraph với cạnh điều kiện | đường đi theo intent nhìn thấy và test được; ReAct tự do khó dự đoán, pipeline tuyến tính không biểu đạt nhánh. |
-| Dependency injection | `Deps` truyền vào graph | unit test dùng fake được, nhưng cần `chains.py` làm lớp ghép các dependency thật. |
-| Kho vector | Chroma với filter ticker trong truy vấn | tránh lẫn tài liệu giữa công ty; Chroma lưu cục bộ. |
-| Embedding | `bge-small-en-v1.5` cục bộ | không cần khóa bổ sung và không gửi filing đi nơi khác; điểm yếu là hỗ trợ đa ngôn ngữ không phải mục tiêu chính. |
-| Truy hồi | top-k cho từng ticker | câu so sánh có cơ hội lấy context của từng công ty; đổi lại số chunk/prompt dài hơn và vẫn có thể bỏ lỡ đoạn bảng đúng. |
-| Trích dẫn | marker trong answer, postprocess tạo citation | chống bịa ID tốt hơn để LLM trả object citation; phụ thuộc LLM tuân thủ format marker. |
-| Giá thị trường | tool + cache, graph ghi đè LLM | giá có nguồn và cờ dữ liệu cũ; phụ thuộc yfinance/cache. |
-| Số liệu | `ground_numbers` | tránh số hoàn toàn không có trong context; chưa hiểu được ngữ nghĩa cột của bảng. |
-| Từ chối | classifier `out_of_scope` | linh hoạt với ngôn ngữ tự nhiên; cần thêm test để giảm false negative. |
-| Model đánh giá | cùng model router cho baseline | cấu hình đơn giản; self-grading có thể làm faithfulness cao hơn thực tế. |
+## 10. Tài liệu liên quan
 
-## 11. Giới hạn đã biết và bước tiếp theo
-
-1. **Retrieval bảng số liệu:** top-k theo vector thường bỏ lỡ chunk chứa bảng. Trong baseline, năm case tệ nhất đều không retrieve được golden chunk.
-2. **Ngữ nghĩa bảng:** một con số có trong context vẫn có thể thuộc cột hoặc phân khúc không đúng. Grounding hiện chưa giải được vấn đề này.
-3. **Ngôn ngữ:** bản viết lại tiếng Anh giúp câu tiếng Việt truy hồi tốt hơn, nhưng chất lượng vẫn phụ thuộc classifier và embedding tiếng Anh.
-4. **Từ chối tư vấn:** không có lớp kiểm tra thứ hai sau classifier.
-5. **Đánh giá:** judge trùng model ứng dụng nên không phải kiểm chứng độc lập.
-
-Ưu tiên tiếp theo là hybrid retrieval (BM25 + vector) có reranker, đồng thời bảo toàn tiêu đề cột và nhãn dòng khi chia bảng. Mục tiêu đo lường và baseline được nêu trong [`docs/NEXT_STEP.md`](NEXT_STEP.md).
-
-## 12. Bằng chứng và tài liệu liên quan
-
-- [`docs/evidence/trace_tree.md`](evidence/trace_tree.md): bản text của hai trace thật.
-- [`docs/evidence/links.md`](evidence/links.md): URL LangSmith và cách tạo lại bằng chứng.
-- [`reports/ragas_baseline.md`](../reports/ragas_baseline.md): quality baseline và caveat.
-- [`docs/KNOWLEDGE_CHECK.md`](KNOWLEDGE_CHECK.md): câu trả lời mẫu để giải thích, dự đoán, gỡ lỗi và bảo vệ lựa chọn.
-- [`docs/NEXT_STEP.md`](NEXT_STEP.md): kế hoạch cải thiện retrieval.
+- [`evidence/links.md`](evidence/links.md) và [`evidence/trace_tree.md`](evidence/trace_tree.md): URL LangSmith và bản text của hai trace thật.
+- [`../reports/ragas_baseline.md`](../reports/ragas_baseline.md): điểm baseline, các ca thất bại và phần caveats.
+- [`KNOWLEDGE_CHECK.md`](KNOWLEDGE_CHECK.md): câu trả lời mẫu cho Giải thích, Dự đoán, Gỡ lỗi và Bảo vệ lựa chọn, có tham chiếu `file:line` vào mã.
+- [`NEXT_STEP.md`](NEXT_STEP.md): kế hoạch cải thiện retrieval.
