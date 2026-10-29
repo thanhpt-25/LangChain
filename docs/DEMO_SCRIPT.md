@@ -1,0 +1,68 @@
+# DEMO SCRIPT (8 phút demo + 4 phút Q&A + 3 phút feedback)
+
+Tổng 15 phút. Phần demo 8 phút chia 4 phần. Trainer có thể hỏi một trong 4 loại: Explain, Predict, Debug, Justify (đáp án sẵn trong `docs/KNOWLEDGE_CHECK.md`).
+
+## 1. Run sheet 8 phút
+
+| Thời gian | Phần | Nói và làm gì | Mở sẵn |
+|---|---|---|---|
+| 0:00-1:30 | 1. Bài toán và bối cảnh tài chính | Nhà đầu tư/analyst muốn trả lời nhanh từ 10-K và giá cổ phiếu, nhưng LLM trần dễ bịa số. Phạm vi: AAPL, MSFT, NVDA. Hệ thống phải (a) có trích dẫn `chunk_id`, (b) lấy giá bằng tool tất định, (c) từ chối câu ngoài phạm vi và tư vấn đầu tư | `README.md` (2 dòng đầu) |
+| 1:30-3:30 | 2. Kiến trúc và data flow | Chỉ sơ đồ graph trong `docs/ARCHITECTURE.md` mục 1: `classify_intent` rẽ 4 nhánh. Đi qua data flow thật của câu `both` (mục 5): `price_tool` 1.67 s, `retrieve` 0.74 s ra 5 chunk `NVDA-2026-1A-126` ... `NVDA-2026-15-020`. Nhấn 3 quyết định: citation tất định (`postprocess.py:10-22`), `ground_numbers` (`postprocess.py:36`), giá từ tool | `docs/ARCHITECTURE.md` |
+| 3:30-6:00 | 3. Chạy trực tiếp | (a) Câu `both`: "What is NVIDIA's current stock price and how do export controls threaten it?" qua Streamlit: câu trả lời, bảng citation, JSON, chunk retrieve. Mở trace LangSmith (URL trong `docs/evidence/links.md`) và chỉ các node `classify_intent`, `price_tool`, `retrieve`, `generate_answer`, `format_output`. (b) Câu ngoài phạm vi: "Should I buy NVIDIA stock now?" cho ra từ chối, trace chỉ có `classify_intent` và `refuse` | Streamlit, tab LangSmith |
+| 6:00-8:00 | 4. Đánh giá, một lỗi, bước tiếp | `reports/ragas_baseline.md`: faithfulness 0.939, precision 0.309, recall 0.387, relevancy 0.687, intent 30/30, numeric sanity 7/10. Nêu ngay Caveats (judge cùng model với app). Một lỗi: q05 MSFT net income, golden chunk `MSFT-2026-8-001` không được retrieve, câu trả lời hedge chứ không bịa. Bước tiếp: `docs/NEXT_STEP.md` | `reports/ragas_baseline.md` |
+
+Ghi chú khi demo:
+- Ở chế độ Replay, Streamlit luôn phát lại `runs/demo.json` (câu Apple net sales, intent `filing`), bất kể câu nhập ở ô Question; app hiển thị dòng "Replaying a recorded run" kèm câu đã ghi. Hãy nói rõ với khán giả đây là bản ghi.
+- Giá thay đổi mỗi lần chạy (trace thật: 215.38 USD lúc 2026-10-29 01:31 UTC), đừng hứa số cụ thể trước.
+- Một lần chạy live `both` mất khoảng 13.65 s (trace thật); vừa chờ vừa giải thích node đang chạy.
+
+## 2. Checklist 6 thứ mang theo (Product, Repository, Architecture, Evaluation, Team evidence, Next step)
+
+| # | Thứ cần mang | Đường dẫn / lệnh | Sẵn sàng |
+|---|---|---|---|
+| 1 | Product | `uv run streamlit run app/streamlit_app.py`; CLI `uv run finassist ask "..."`; bản ghi `runs/demo.json` | [ ] |
+| 2 | Repository | repo `LangChain`, nhánh `feat/finance-assistant`; `README.md`, `src/finassist/`, `tests/` (135 passed, 11 skipped) | [ ] |
+| 3 | Architecture | `docs/ARCHITECTURE.md` (sơ đồ, state, node, data flow thật, bảng quyết định) | [ ] |
+| 4 | Evaluation | `reports/ragas_baseline.md` và `reports/ragas_baseline.json`; `eval/golden_set.json` (30 câu) | [ ] |
+| 5 | Team evidence | `docs/TEAM_LOG.md`; `docs/evidence/links.md` và `docs/evidence/trace_tree.md`; `git log` | [ ] |
+| 6 | Next step | `docs/NEXT_STEP.md` (hybrid retrieval cho chunk báo cáo tài chính) | [ ] |
+
+## 3. Kế hoạch dự phòng (fallback)
+
+| Sự cố | Làm gì |
+|---|---|
+| Router LLM hoặc mạng lỗi khi live | Streamlit: tick "Replay recorded run (offline fallback)" ở sidebar rồi bấm Ask. Terminal: `uv run finassist ask x --replay runs/demo.json` (không gọi mạng, không cần LLM; tham số câu hỏi bị bỏ qua) |
+| yfinance lỗi hoặc không có mạng | `FINASSIST_PRICE_OFFLINE=1 uv run streamlit run app/streamlit_app.py` (hoặc đặt biến này khi chạy `finassist ask`). Giá lấy từ `data/cache/prices.json` (có NVDA, AAPL, MSFT) và hiển thị `stale` |
+| LangSmith không mở được | Dùng `docs/evidence/trace_tree.md` (text rendering của 2 trace thật). Không có ảnh chụp màn hình trong repo |
+| Streamlit không lên | Dùng CLI `finassist ask` hoặc `--replay` |
+| Hỏi số liệu khác với kỳ vọng | Chỉ vào citation và `reports/ragas_baseline.md`: lỗi retrieval đã biết, hệ thống hedge chứ không bịa |
+
+Tạo lại bản ghi: `uv run finassist ask "..." --record runs/demo.json` (cần router).
+
+## 4. Checklist an toàn
+
+- [ ] `.env` không mở trong editor, không `cat .env`, không hiện trong terminal history hay cửa sổ chia sẻ. File này nằm trong `.gitignore`.
+- [ ] Khóa API (router, LangSmith) không hiện trên màn hình. Trace URL LangSmith nằm trong `docs/evidence/links.md`; mở trang LangSmith ở tab riêng và chỉ chia sẻ tab đó, không chia sẻ màn hình có thanh Settings/API keys.
+- [ ] Đóng các tab trình duyệt không liên quan (mail, chat, tab có thông tin cá nhân) trước khi chia sẻ màn hình.
+- [ ] Tắt thông báo hệ thống.
+- [ ] Trước giờ demo: `git ls-files | grep -E '^\.env$'` phải rỗng và `git grep -nE 'sk-[A-Za-z0-9-]{12,}|lsv2_pt_'` không có kết quả.
+- [ ] Chạy thử `uv run finassist ask x --replay runs/demo.json` một lần trước giờ demo.
+- [ ] Cỡ chữ terminal và trình duyệt đủ lớn để cả phòng đọc được.
+
+## 5. Q&A clinic: mẫu và 2 ví dụ đã điền
+
+Mẫu: **Context** (đang làm gì, môi trường) -> **Attempt** (đã thử gì) -> **Evidence** (log, test, commit) -> **Specific question** (một câu hỏi hẹp).
+
+### Ví dụ 1: `ragas` không import được
+
+- **Context:** chạy `eval/run_ragas.py` để chấm baseline bằng RAGAS 0.4.3 trên Python 3.12, `langchain-core` 1.x.
+- **Attempt:** `import ragas` lỗi vì ragas import `ChatVertexAI` và `VertexAI` từ `langchain_community`, mà `langchain-community` 0.4.x không còn cung cấp. Không hạ được `langchain-core` về bản 0.x vì các gói LangChain khác trong dự án cần bản 1.x. Cách đang dùng: `eval/_ragas_compat.py` đăng ký module giả rỗng (`_stub`, dòng 13-23) chỉ khi module thật thiếu, và import trước ragas (`eval/run_ragas.py:11`). Đã thu hẹp `except` thành `ModuleNotFoundError` đúng tên module để không che lỗi import khác (commit `b0ad410`).
+- **Evidence:** `eval/_ragas_compat.py`, `tests/test_ragas_compat.py`, baseline chạy được 25 câu, 0 lỗi app (`reports/ragas_baseline.md`).
+- **Specific question:** shim stub này có chấp nhận được cho một lần đo baseline không, hay nên ghim phiên bản `ragas` cũ hơn và chấp nhận phải hạ cả bộ LangChain?
+
+### Ví dụ 2: biến môi trường trong shell ghi đè `.env`
+
+- **Context:** `finassist` đọc `ANTHROPIC_BASE_URL` và `ANTHROPIC_API_KEY` từ `.env` qua `python-dotenv`.
+- **Attempt:** mặc định `load_dotenv` không ghi đè biến đã có trong shell, nên giá trị `ANTHROPIC_*` đã export sẵn trong shell thắng `.env` và app gọi nhầm endpoint. Đã đổi thành `load_dotenv(ROOT / ".env", override=True)` (`src/finassist/config.py:34`), và thêm fixture trong `tests/conftest.py` vô hiệu hóa việc nạp `.env` khi chạy unit test (trừ khi `RUN_INTEGRATION=1`) để test không phụ thuộc máy (commit `e091608`).
+- **Evidence:** commit `e091608` "let project .env override shell env; isolate unit tests from .env"; `tests/conftest.py` (fixture `_isolate_from_dotenv`); `README.md` mục Troubleshooting.
+- **Specific question:** với một app demo, nên để `.env` của dự án luôn thắng như hiện tại, hay để biến shell thắng (chuẩn 12-factor) và in cảnh báo khi hai giá trị khác nhau?
