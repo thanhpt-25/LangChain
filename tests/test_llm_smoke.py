@@ -64,14 +64,14 @@ def live_store(tmp_path_factory):
 @pytest.mark.skipif(os.getenv("RUN_INTEGRATION") != "1", reason="integration")
 def test_generate_live_cites_retrieved_chunk(live_store):
     from finassist.chains import build_llm, make_deps
-    from finassist.postprocess import MARKER_RE
+    from finassist.postprocess import marker_ids
     s = get_settings()
     deps = make_deps(s, live_store, build_llm(s))
     q = "What were Apple's total net sales last fiscal year?"
     chunks = deps.retrieve(q, ["AAPL"])[:3]
     ans = deps.generate(q, chunks, [])
     ids = {c.chunk_id for c in chunks}
-    found = set(MARKER_RE.findall(ans))
+    found = set(marker_ids(ans))
     assert found and found <= ids
 
 

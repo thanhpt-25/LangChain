@@ -46,12 +46,19 @@ Mỗi hướng dưới đây bám vào một quan sát cụ thể. Cách đo lu�
 
 - MSFT diluted EPS: lần chạy live đầu tiên cho `eps = null` vì retrieval miss. Chưa đo lại riêng câu này với cấu hình mới.
 - Numeric sanity là 7/10 ở `retrieval_v2`, bằng baseline.
-- `MARKER_RE` chỉ nhận một chunk id mỗi cặp ngoặc vuông: `[A, B]` cho 0 citation, dẫn tới thử lại rồi `INSUFFICIENT_TEXT`. Cần cho phép nhiều id hoặc nhắc rõ trong prompt, kèm test.
 - Câu hỏi tiếng Việt: đã giảm thiểu bằng `search_query` tiếng Anh, nhưng embedding và reranker đều chỉ có tiếng Anh, và câu về bảng Item 8 ("Lợi nhuận ròng của Microsoft") vẫn dễ retrieve hụt. Hướng thử: embedding đa ngôn ngữ.
 - `answer_relevancy = 0.0` với câu từ chối hoặc hedge là artifact của RAGAS. Số câu như vậy đã giảm ở `retrieval_v2`, nhưng chưa có cách đo khác, nên một phần mức tăng relevancy là do ít từ chối hơn chứ chưa chắc câu trả lời hay hơn.
 - Judge cùng model với app (tự chấm): thử judge khác model nếu có.
-- Lời gọi yfinance chưa đặt timeout, nên mạng chậm có thể làm `price_tool` đứng lâu.
 - LLM chạy ở `temperature=0` (`src/finassist/chains.py:47`), nên lần thử lại trong `generate_answer` có thể cho đúng câu trả lời cũ. Chưa có phép đo cho thấy lần thử thứ hai cải thiện được gì.
-- Test cho các cách hỏi lời khuyên đầu tư khác nhau để kiểm tra classifier (hiện chỉ có một smoke test, `tests/test_llm_smoke.py:20`).
-- Chroma rỗng (quên chạy `ingest`) hiện trả `INSUFFICIENT_TEXT` mà không báo kho trống.
 - Ảnh chụp trace LangSmith (`docs/evidence/trace_tree.png`) chưa có, vì UI cần đăng nhập. Người có quyền truy cập có thể mở URL trong `docs/evidence/links.md` và chụp.
+
+## Đã làm trong đợt gia cố
+
+Bốn hạng mục nhỏ từ danh sách tồn đọng cũ đã xong, mỗi cái có test viết trước.
+
+- Citation nhiều id: `postprocess.marker_ids` đọc mọi cặp ngoặc vuông mà sau khi bỏ dấu phẩy, chấm phẩy, khoảng trắng, "và" và "and" chỉ còn chunk id. `[A, B]`, `[A,B]`, `[A; B]` và `[A][B]` đều cho hai citation, còn `[see A]` và ghi chú "price unavailable" không cho citation nào. `extract_citations` và `chains.structure` dùng hàm này. `MARKER_RE` vẫn còn cho code cũ.
+- Timeout yfinance: biến `FINASSIST_PRICE_TIMEOUT` (giây, mặc định 8). Lời gọi live chạy trong một thread daemon và hết giờ thì ném `TimeoutError`, nên luồng cũ lấy giá cache (`stale`) hoặc báo `PriceUnavailable`. `get_stock_price(..., timeout=None)` giữ hành vi cũ.
+- Kho rỗng: `make_retriever` ném `EmptyStoreError` kèm lệnh `uv run finassist ingest` khi `store.count()` bằng 0. Lỗi này nổi lên ở câu hỏi filing đầu tiên, còn câu hỏi chỉ về giá vẫn chạy. CLI in thông báo đó mà không kèm gợi ý router, Streamlit chỉ hiện thông báo lỗi, không nhắc ô Replay.
+- Test lời khuyên đầu tư: `tests/test_advice_refusal.py` có 14 cách hỏi (tiếng Anh và tiếng Việt) và 9 câu đối chứng. Chạy thật với router (`RUN_INTEGRATION=1`), classifier từ chối cả 14 và giữ đúng intent của cả 9 câu đối chứng, nên `CLASSIFY_SYSTEM` không phải sửa. Một test không cần router kiểm tra đồ thị từ chối mà không truy hồi hay gọi giá, với từng câu trong 14 câu.
+
+Kiểm thử sau đợt này: `uv run pytest -q` cho 248 passed, 38 skipped.

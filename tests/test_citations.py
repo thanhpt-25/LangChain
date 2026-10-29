@@ -45,3 +45,21 @@ def test_only_hallucinated_marker_retries_then_insufficient(make_deps, intent):
     assert state["output"].answer == INSUFFICIENT_TEXT
     assert "missing_citation" in state["error"]
     assert state["output"].citations == []
+
+
+def test_multi_id_bracket_passes_without_retry_and_yields_two_citations(make_deps):
+    from finassist.schemas import Chunk
+
+    a = Chunk(chunk_id="AAPL-2025-7-000", text="Net sales 416,161", ticker="AAPL", fiscal_year=2025, item="7")
+    b = Chunk(chunk_id="AAPL-2025-1A-001", text="Supply risk", ticker="AAPL", fiscal_year=2025, item="1A")
+    n = {"calls": 0}
+
+    def gen(q, cs, ps):
+        n["calls"] += 1
+        return "Sales and risks [AAPL-2025-7-000, AAPL-2025-1A-001]."
+
+    deps, _ = make_deps(intent="filing", chunks=[a, b], generate=gen)
+    state = build_graph(deps).invoke({"question": "q"})
+    assert n["calls"] == 1
+    assert not state.get("error")
+    assert [c.chunk_id for c in state["output"].citations] == ["AAPL-2025-7-000", "AAPL-2025-1A-001"]

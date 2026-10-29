@@ -1,4 +1,6 @@
-from finassist.postprocess import MARKER_RE, extract_citations, ground_numbers
+import time
+
+from finassist.postprocess import MARKER_RE, extract_citations, ground_numbers, marker_ids
 from finassist.schemas import Chunk, FinanceAnswer, Money
 
 
@@ -95,3 +97,69 @@ def test_extract_citations_truncates_quote_to_200_chars():
     chunks = [ch("AAPL-2025-8-000", "x" * 500)]
     cites = extract_citations("[AAPL-2025-8-000]", chunks)
     assert len(cites[0].quote) == 200
+
+
+from finassist.postprocess import ID_RE, marker_ids  # noqa: E402
+
+A, B, C = "AAPL-2025-7-000", "AAPL-2025-1A-012", "NVDA-2026-7A-003"
+
+
+@pytest.mark.parametrize("answer", [
+    f"x [{A}] y [{B}]", f"x [{A}, {B}]", f"x [{A},{B}]", f"x [{A}; {B}]",
+    f"x [{A}][{B}]", f"x [{A} và {B}]", f"x [{A} and {B}]",
+])
+def test_marker_ids_accepts_every_multi_id_form(answer):
+    assert marker_ids(answer) == [A, B]
+
+
+def test_marker_ids_dedupes_and_keeps_first_appearance_order():
+    assert marker_ids(f"[{B}] a [{A}, {B}] b [{C}] c [{A}]") == [B, A, C]
+
+
+@pytest.mark.parametrize("answer", [
+    f"[see {A}]", f"[{A} and more text]", "[Giá hiện không khả dụng / price unavailable: MSFT]",
+    "[]", "[, ;]", f"[{A}x]", "no brackets",
+])
+def test_marker_ids_ignores_brackets_with_other_text(answer):
+    assert marker_ids(answer) == []
+
+
+def test_marker_ids_ignores_junk_brackets_but_keeps_valid_ones():
+    assert marker_ids(f"[see {A}] ok [{B}]") == [B]
+
+
+def test_price_note_cannot_fake_a_citation():
+    note = "\n\n[Giá hiện không khả dụng / price unavailable: MSFT]"
+    assert marker_ids("No marker." + note) == []
+    assert ID_RE.pattern == r"[A-Z]+-\d{4}-[0-9A-Z]+-\d{3}"
+
+
+def test_extract_citations_handles_multi_id_and_filters_hallucinated():
+    chunks = [ch(A, "t"), ch(B, "t")]
+    cites = extract_citations(f"x [{A}, MSFT-2025-7-099, {B}]", chunks)
+    assert [c.chunk_id for c in cites] == [A, B]
+    assert extract_citations("x [MSFT-2025-7-099, MSFT-2025-7-098]", chunks) == []
+
+
+A_ID = "AAPL-2025-8-001"
+
+
+def test_marker_ids_nested_brackets_keep_inner_citation():
+    assert marker_ids(f"[[{A_ID}]]") == [A_ID]
+    assert marker_ids(f"[Note: [{A_ID}]]") == [A_ID]
+
+
+def test_marker_ids_stray_open_bracket_before_marker():
+    assert marker_ids(f"[approx 5 [{A_ID}]") == [A_ID]
+
+
+def test_marker_ids_group_unchanged():
+    b = "NVDA-2026-7A-012"
+    assert marker_ids(f"[{A_ID}, {b}]") == [A_ID, b]
+
+
+def test_marker_ids_is_linear_on_many_unclosed_brackets():
+    text = "[x " * 20000
+    start = time.perf_counter()
+    assert marker_ids(text) == []
+    assert time.perf_counter() - start < 0.5

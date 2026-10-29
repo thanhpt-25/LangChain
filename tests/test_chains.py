@@ -89,7 +89,7 @@ class _FakeLLM:
 
 
 def _deps(result, tmp_path):
-    settings = SimpleNamespace(cache_dir=tmp_path, top_k=3, price_offline=True)
+    settings = SimpleNamespace(cache_dir=tmp_path, top_k=3, price_offline=True, price_timeout=8.0)
     return make_deps(settings, None, _FakeLLM(result))
 
 
@@ -138,7 +138,7 @@ def test_structure_context_narrowed_to_cited_chunks(tmp_path):
             return {"parsed": LLMExtraction(eps=1.0), "raw": None, "parsing_error": None}
 
     llm = SimpleNamespace(with_structured_output=lambda schema, include_raw=False: R())
-    deps = make_deps(SimpleNamespace(cache_dir=tmp_path, top_k=3, price_offline=True), None, llm)
+    deps = make_deps(SimpleNamespace(cache_dir=tmp_path, top_k=3, price_offline=True, price_timeout=8.0), None, llm)
     cs = [_chunk("AAPL-2025-7-001", text="AAA"), _chunk("AAPL-2025-7-002", text="BBB")]
     deps.structure("q", "see [AAPL-2025-7-002]", cs, [], "filing")
     assert "BBB" in seen["human"] and "AAA" not in seen["human"]
@@ -196,8 +196,21 @@ def test_make_deps_builds_the_retriever_once_and_lazily(monkeypatch):
             return object()
 
     monkeypatch.setattr("finassist.chains.make_retriever", fake_make)
-    deps = make_deps(SimpleNamespace(cache_dir=Path("."), price_offline=True), object(), FakeLLM())
+    deps = make_deps(SimpleNamespace(cache_dir=Path("."), price_offline=True, price_timeout=8.0), object(), FakeLLM())
     assert built == []
     deps.retrieve("q", ["AAPL"])
     deps.retrieve("q2", ["AAPL"])
     assert built == [1]
+
+
+def test_make_deps_price_passes_settings_timeout(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_get(ticker, cache_path, offline=False, timeout=None, **kw):
+        seen.update(timeout=timeout, offline=offline)
+        return PriceInfo(ticker=ticker, price=1.0, as_of="2026-10-28T00:00:00+00:00")
+
+    monkeypatch.setattr("finassist.chains.get_stock_price", fake_get)
+    settings = SimpleNamespace(cache_dir=tmp_path, price_offline=False, price_timeout=3.5)
+    make_deps(settings, None, _FakeLLM(None)).price("AAPL")
+    assert seen == {"timeout": 3.5, "offline": False}

@@ -9,6 +9,10 @@ from finassist.schemas import Chunk
 
 log = logging.getLogger(__name__)
 
+class EmptyStoreError(RuntimeError):
+    """The vector store holds no chunks, usually because `finassist ingest` was never run."""
+
+
 Scorer = Callable[[str, list[str]], list[float]]
 
 # A number with thousands separators or decimals stays one token ("133,749", "4.90"); words are lowercase runs.
@@ -96,6 +100,9 @@ class Retriever:
 
 
 def make_retriever(settings: Settings, store: SearchStore) -> Retriever:
+    count = getattr(store, "count", None)  # test fakes may not have it
+    if callable(count) and count() == 0:
+        raise EmptyStoreError("The filings store is empty. Build it first: uv run finassist ingest")
     if settings.retrieval_mode not in ("dense", "hybrid"):  # fail before the slow model load
         raise ValueError(f"FINASSIST_RETRIEVAL must be 'dense' or 'hybrid', got {settings.retrieval_mode!r}")
     try:

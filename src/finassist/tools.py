@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import tempfile
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
@@ -26,6 +27,32 @@ def _yf_fetch(ticker: str) -> dict:
     if price is None:
         raise ValueError(f"no price for {ticker}")
     return {"price": float(price), "market_cap": info.get("marketCap"), "pe_ratio": info.get("trailingPE")}
+
+
+def _call_with_timeout(fn: Callable[[str], dict], ticker: str, timeout: float | None) -> dict:
+    """Run fn(ticker), giving up after `timeout` seconds. None means wait as long as it takes.
+
+    A daemon thread is used on purpose: a hung network call cannot be cancelled, and a
+    ThreadPoolExecutor worker (non-daemon) would keep the interpreter from exiting.
+    """
+    if timeout is None:
+        return fn(ticker)
+    box: dict = {}
+
+    def run() -> None:
+        try:
+            box["value"] = fn(ticker)
+        except BaseException as exc:  # noqa: BLE001 - re-raised in the caller thread
+            box["error"] = exc
+
+    t = threading.Thread(target=run, name=f"price-fetch-{ticker}", daemon=True)
+    t.start()
+    t.join(timeout)
+    if t.is_alive():
+        raise TimeoutError(f"price fetch for {ticker} timed out after {timeout:g}s")
+    if "error" in box:
+        raise box["error"]
+    return box["value"]
 
 
 def _read(path: Path) -> dict:
@@ -62,12 +89,13 @@ def get_stock_price(
     cache_path: Path,
     fetcher: Callable[[str], dict] | None = None,
     offline: bool = False,
+    timeout: float | None = None,
 ) -> PriceInfo:
     cache = _read(cache_path)
     last_err: Exception | None = None
     if not offline:
         try:
-            data = (fetcher or _yf_fetch)(ticker)
+            data = _call_with_timeout(fetcher or _yf_fetch, ticker, timeout)
             as_of = datetime.now(timezone.utc).isoformat(timespec="seconds")
             info = PriceInfo(ticker=ticker, stale=False, **{**data, "as_of": as_of})
         except Exception as exc:

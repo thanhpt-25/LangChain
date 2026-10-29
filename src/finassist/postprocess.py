@@ -4,15 +4,30 @@ import re
 
 from finassist.schemas import Chunk, Citation, FinanceAnswer
 
-MARKER_RE = re.compile(r"\[([A-Z]+-\d{4}-[0-9A-Z]+-\d{3})\]")
+ID_RE = re.compile(r"[A-Z]+-\d{4}-[0-9A-Z]+-\d{3}")
+MARKER_RE = re.compile(rf"\[({ID_RE.pattern})\]")  # single-id marker, kept for existing callers
+_BRACKET_RE = re.compile(r"\[([^\[\]]+)\]")  # no inner "[": keeps scanning linear and finds the innermost group
+_SEPARATORS_RE = re.compile(r"[,;\s]+|\b(?:và|and)\b")
+
+
+def marker_ids(answer: str) -> list[str]:
+    """Chunk ids cited in square brackets, in order of first appearance, without duplicates.
+
+    A bracket group counts only if, once separators (comma, semicolon, space, "và", "and") are
+    removed, it holds nothing but chunk ids. "[A, B]" and "[A][B]" both yield A and B; "[see A]" and
+    the price-unavailable note yield nothing.
+    """
+    found: list[str] = []
+    for group in _BRACKET_RE.findall(answer):
+        parts = [p for p in _SEPARATORS_RE.split(group) if p]
+        if parts and all(ID_RE.fullmatch(p) for p in parts):
+            found.extend(p for p in parts if p not in found)
+    return found
 
 
 def extract_citations(answer: str, chunks: list[Chunk]) -> list[Citation]:
     by_id = {c.chunk_id: c for c in chunks}
-    seen: list[str] = []
-    for cid in MARKER_RE.findall(answer):
-        if cid in by_id and cid not in seen:
-            seen.append(cid)
+    seen = [cid for cid in marker_ids(answer) if cid in by_id]
     return [
         Citation(
             source=f"{by_id[i].ticker} 10-K FY{by_id[i].fiscal_year}",
