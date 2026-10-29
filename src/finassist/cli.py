@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 
@@ -60,16 +61,30 @@ def _cmd_ingest() -> None:
     print(f"total in store: {store.count()}")
 
 
+def _fail(msg: str) -> None:
+    print(msg, file=sys.stderr)
+    raise SystemExit(1)
+
+
 def _cmd_ask(question: str, record: str | None, replay: str | None) -> None:
     if replay:
-        print(render_record(json.loads(Path(replay).read_text())))
+        try:
+            rec = json.loads(Path(replay).read_text(encoding="utf-8"))
+            text = render_record(rec)
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            _fail(f"error: cannot replay {replay}: {type(e).__name__}: {e}")
+        print(text)
         return
-    from finassist.runtime import ask, build_app
+    try:
+        from finassist.runtime import ask, build_app
 
-    rec = _record(ask(build_app(), question, tags=["demo"]))
-    if record:
-        Path(record).parent.mkdir(parents=True, exist_ok=True)
-        Path(record).write_text(json.dumps(rec, indent=2, ensure_ascii=False))
+        rec = _record(ask(build_app(), question, tags=["demo"]))
+        if record:
+            Path(record).parent.mkdir(parents=True, exist_ok=True)
+            Path(record).write_text(json.dumps(rec, indent=2, ensure_ascii=False), encoding="utf-8")
+    except Exception as e:  # noqa: BLE001 - CLI boundary: one readable line instead of a traceback
+        msg = " ".join(str(e).split())
+        _fail(f"error: {type(e).__name__}: {msg} (is the LLM router up? try --replay runs/demo.json)")
     print(render_record(rec))
 
 
