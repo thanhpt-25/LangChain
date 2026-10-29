@@ -8,7 +8,7 @@ Dùng câu `both`: "What is NVIDIA's current stock price and how do export contr
 
 **Câu trả lời (60-90 s):**
 
-"Hệ thống là một LangGraph `StateGraph` trong `src/finassist/graph.py`. Câu hỏi đi vào `classify_intent`, node này gọi LLM với structured output `IntentResult` (prompt ở `chains.py:17-23`) và trả `intent` cùng `tickers`. Với câu này intent là `both`, ticker NVDA. Hàm `route` (`graph.py:66`) đưa `both` vào `price_tool`. Node này gọi hàm tất định `get_stock_price` (`tools.py:60`), không để LLM tự nói giá; kết quả là 215.38 USD, market cap 5.20 nghìn tỷ, P/E 27.54. Vì intent là `both`, `after_price` (`graph.py:78`) đi tiếp sang `retrieve`, lấy 5 chunk của NVDA từ Chroma, lọc theo metadata ticker; trong trace là `NVDA-2026-1A-126`, `1A-106`, `15-085`, `15-025`, `15-020`. `generate_answer` yêu cầu LLM chỉ dùng chunk và giá đã cung cấp, mỗi khẳng định gắn `[chunk_id]`. Cuối cùng `format_output` trích các trường số bằng LLM, nhưng citation được tạo tất định từ marker (`postprocess.py:10-22`), số liệu không có trong chunk bị đặt `null` (`ground_numbers`, `postprocess.py:36`), và giá lấy từ tool. Kết quả là `FinanceAnswer` JSON. Câu ngoài phạm vi đi nhánh `refuse`, không gọi LLM sinh nội dung."
+"Hệ thống là một LangGraph `StateGraph` trong `src/finassist/graph.py`. Câu hỏi đi vào `classify_intent`, node này gọi LLM với structured output `IntentResult` (prompt ở `chains.py:17-26`) và trả `intent` cùng `tickers` (kèm `language` và `search_query`; với câu không phải tiếng Anh, `search_query` là bản viết lại tiếng Anh dùng để retrieve). Với câu này intent là `both`, ticker NVDA. Hàm `route` (`graph.py:68-69`) đưa `both` vào `price_tool`. Node này gọi hàm tất định `get_stock_price` (`tools.py:60`), không để LLM tự nói giá; kết quả là 215.38 USD, market cap 5.20 nghìn tỷ, P/E 27.54. Vì intent là `both`, `after_price` (`graph.py:80-81`) đi tiếp sang `retrieve`, lấy 5 chunk của NVDA từ Chroma, lọc theo metadata ticker; trong trace là `NVDA-2026-1A-126`, `1A-106`, `15-085`, `15-025`, `15-020`. `generate_answer` yêu cầu LLM chỉ dùng chunk và giá đã cung cấp, mỗi khẳng định gắn `[chunk_id]`. Cuối cùng `format_output` trích các trường số bằng LLM, nhưng citation được tạo tất định từ marker (`postprocess.py:10-22`), số liệu không có trong chunk bị đặt `null` (`ground_numbers`, `postprocess.py:36`), và giá lấy từ tool. Kết quả là `FinanceAnswer` JSON. Câu ngoài phạm vi đi nhánh `refuse`, không gọi LLM sinh nội dung."
 
 Các file nên nêu tên: `graph.py` (điều phối), `chains.py` (LLM thật cho từng node), `postprocess.py` (citation và grounding), `tools.py` (giá).
 
@@ -20,8 +20,8 @@ q21 (`eval/golden_set.json`): "What is Apple's current stock price, and what wer
 
 | Node | Dự đoán |
 |---|---|
-| `classify_intent` | `intent = both`, `tickers = ["AAPL"]`; `retrieved_chunks = []`, `price_data = []`, `short_circuit = False` |
-| `route` / `price_tool` | đi vào `price_tool`; tool call `get_stock_price("AAPL", cache_path, offline=False)` (`chains.py:121-122`); `price_data = [PriceInfo(AAPL, price, market_cap, pe_ratio, as_of, stale=False)]`. Nếu yfinance lỗi: dùng `data/cache/prices.json` và `stale=True` (`tools.py:83-85`) |
+| `classify_intent` | `intent = both`, `tickers = ["AAPL"]`, `search_query` = câu hỏi gốc (câu tiếng Anh); `retrieved_chunks = []`, `price_data = []`, `short_circuit = False` |
+| `route` / `price_tool` | đi vào `price_tool`; tool call `get_stock_price("AAPL", cache_path, offline=False)` (`chains.py:124-125`); `price_data = [PriceInfo(AAPL, price, market_cap, pe_ratio, as_of, stale=False)]`. Nếu yfinance lỗi: dùng `data/cache/prices.json` và `stale=True` (`tools.py:83-85`) |
 | `after_price` | `both` -> `retrieve` |
 | `retrieve` | 5 chunk AAPL (top-k=5). Chunk mong muốn là `AAPL-2025-7-005` (bảng segment, có Total net sales). Dự đoán trung thực: có khả năng không lấy được chunk này, vì chunk bảng số khó khớp embedding |
 | `generate_answer` | trả giá từ khối PRICE DATA; phần net sales chỉ có số nếu chunk có; nếu chunk không chứa FY2025 total thì câu trả lời nói rõ thiếu |
@@ -69,10 +69,10 @@ Trace chọn: `01a18548-f611-70d1-ad75-5bb267a4a30e` (intent `both`, NVDA; URL t
 
 | Câu hỏi | Chỉ vào đâu |
 |---|---|
-| Citation được trích ra ở đâu? | `src/finassist/postprocess.py:7` (`MARKER_RE`), `postprocess.py:10-22` (`extract_citations`: chỉ giữ marker khớp chunk đã retrieve, khử trùng, `quote` = 200 ký tự đầu của chunk); gán vào output ở `graph.py:110-113` |
-| Retrieve node ở đâu? | code `graph.py:81-82` -> `chains.py:118-119` -> `vectorstore.py:41-52`; trong trace là node `retrieve` (0.74 s, 5 chunk) |
+| Citation được trích ra ở đâu? | `src/finassist/postprocess.py:7` (`MARKER_RE`), `postprocess.py:10-22` (`extract_citations`: chỉ giữ marker khớp chunk đã retrieve, khử trùng, `quote` = 200 ký tự đầu của chunk); gán vào output ở `graph.py:113-116` |
+| Retrieve node ở đâu? | code `graph.py:83-84` -> `chains.py:121-122` -> `vectorstore.py:41-52`; trong trace là node `retrieve` (0.74 s, 5 chunk) |
 | Tool giá ở đâu? | `tools.py:60-90`; trong trace là node `price_tool` (1.67 s) với `price_data` |
-| Từ chối ở đâu? | `graph.py:116-118`; trace `01a18549-d281-74e8-93cf-cb568132d110` chỉ có `classify_intent` và `refuse` |
+| Từ chối ở đâu? | `graph.py:121-123`; trace `01a18549-d281-74e8-93cf-cb568132d110` chỉ có `classify_intent` và `refuse` |
 | Chặn số bịa ở đâu? | `ground_numbers`, `postprocess.py:36-44` |
 | Chunk theo Item ở đâu? | `ingest.py:46-62` (`split_items`), `ingest.py:65-74` (`chunk_filing`) |
 
@@ -84,8 +84,8 @@ Xem bảng quyết định trong `docs/ARCHITECTURE.md` mục 6. Tóm tắt mộ
 
 | Tình huống | Điều xảy ra (theo code) | Đã có test/evidence? |
 |---|---|---|
-| Giá cũ hoặc yfinance lỗi | dùng cache với `stale=True` (`tools.py:83-85`); không cache thì `PriceUnavailable`, node ghi `error` và câu trả lời thêm ghi chú "price unavailable" (`graph.py:22-23`, `graph.py:75-76`) | `tests/test_price_tool.py`, `tests/test_graph_routing.py` |
-| LLM không gắn marker `[chunk_id]` | thử lại một lần, vẫn không có thì `INSUFFICIENT_TEXT` và `error = missing_citation` (`graph.py:95-99`) | `tests/test_citations.py` |
+| Giá cũ hoặc yfinance lỗi | dùng cache với `stale=True` (`tools.py:83-85`); không cache thì `PriceUnavailable`, node ghi `error` và câu trả lời thêm ghi chú "price unavailable" (`graph.py:22-23`, `graph.py:76-77`) | `tests/test_price_tool.py`, `tests/test_graph_routing.py` |
+| LLM không gắn marker `[chunk_id]` | thử lại một lần, vẫn không có thì `INSUFFICIENT_TEXT` và `error = missing_citation` (`graph.py:97-101`) | `tests/test_citations.py` |
 | Parse Item sai (cross-reference "see Item 1A") | `_is_heading` loại tham chiếu trong văn xuôi (`ingest.py:33-43`); Item bị thiếu thì không có chunk cho Item đó | `tests/test_ingest.py`; NVDA Item 8 chỉ có 1 chunk vì financial statements nằm ở Item 15 |
 | Ngoài phạm vi (Tesla, thời tiết, dự đoán giá, Alphabet) | `refuse` (intent accuracy: 5/5 bẫy, 30/30 tổng trong baseline) | `reports/ragas_baseline.md` |
 | Classifier gán nhầm lời khuyên đầu tư thành `price` | không có chốt chặn thứ hai (không có keyword rule); đây là rủi ro đã biết | chỉ có integration smoke test cho câu "Should I buy NVIDIA stock now?" (`tests/test_llm_smoke.py:20`), không có test cho các cách hỏi khác |
@@ -93,7 +93,7 @@ Xem bảng quyết định trong `docs/ARCHITECTURE.md` mục 6. Tóm tắt mộ
 | Số sai nhưng "có trong chunk" (grounded-but-misread) | `ground_numbers` chỉ kiểm tra chuỗi số xuất hiện trong chunk đã retrieve, không kiểm tra nghĩa; bảng không có tiêu đề cột cho phép lấy nhầm số (q10, q20: 139,297 thay vì 215,938) | `reports/ragas_baseline.md` Caveats; ca Debug thứ hai. Chưa có kiểm tra ngữ nghĩa nào |
 | Câu hỏi tiếng Việt (không phải tiếng Anh) | embedding chỉ tiếng Anh nên câu gốc retrieve kém (câu rủi ro xuất khẩu NVIDIA: không có chunk Item 1A, distance 0.71-0.74 so với 0.27). Giảm thiểu: `search_query` tiếng Anh do classifier viết lại. Còn yếu với các câu về bảng Item 8 (ví dụ "Lợi nhuận ròng của Microsoft") | `tests/test_graph_routing.py` (fake), `tests/test_llm_smoke.py::test_graph_live_vietnamese_export_control_hits_item_1a` |
 | LLM viết `[A, B]` trong một cặp ngoặc | `MARKER_RE` chỉ nhận một chunk id mỗi cặp, nên không có citation hợp lệ, thử lại, rồi `INSUFFICIENT_TEXT` với `error = missing_citation` | chưa có test cho định dạng này |
-| Câu hỏi so sánh nhiều công ty | `retrieve` lấy top-5 cho mỗi ticker (`chains.py:119`), nhưng chunk đúng vẫn có thể thiếu (q24 recall 0.0 và precision 0.0) | `reports/ragas_baseline.md` |
+| Câu hỏi so sánh nhiều công ty | `retrieve` lấy top-5 cho mỗi ticker (`chains.py:122`), nhưng chunk đúng vẫn có thể thiếu (q24 recall 0.0 và precision 0.0) | `reports/ragas_baseline.md` |
 
 ### "Bạn đã kiểm chứng bằng cách nào"
 

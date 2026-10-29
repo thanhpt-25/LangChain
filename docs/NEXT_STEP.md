@@ -10,7 +10,7 @@ Chunk bảng tài chính gồm chủ yếu chữ số, mỗi số một dòng, m
 
 **Hybrid retrieval (BM25 + vector) kèm reranker**, và/hoặc **chunk theo bảng giữ tiêu đề cột và nhãn dòng** (đưa cả tên công ty, năm tài chính, tên báo cáo vào đầu chunk). Tại sao chọn cái này trước: nó đánh vào nguyên nhân chung của 5/5 case tệ nhất, không phải vá từng câu.
 
-Điểm xuất phát trong code: `retrieve` ở `src/finassist/chains.py:118-119` gọi `FilingStore.search` (`src/finassist/vectorstore.py:41-52`, chỉ vector); chunking ở `src/finassist/ingest.py:65-74`.
+Điểm xuất phát trong code: `retrieve` ở `src/finassist/chains.py:121-122` gọi `FilingStore.search` (`src/finassist/vectorstore.py:41-52`, chỉ vector); chunking ở `src/finassist/ingest.py:65-74`.
 
 ## Mục tiêu có thể đo lường (cùng golden set, cùng metric)
 

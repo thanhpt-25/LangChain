@@ -36,7 +36,7 @@ Các tài liệu README, `docs/*.md` được thêm ở các commit tài liệu 
 
 ## Bản sửa ưu tiên đã được commit
 
-`a668069` "enforce valid citations, surface price failures, ground stock_price in tool data": sau review, một câu filing không có marker `[chunk_id]` hợp lệ giờ bị thử lại một lần rồi trả `INSUFFICIENT_TEXT` kèm `error = missing_citation` (`src/finassist/graph.py:95-99`), thay vì trả câu không có nguồn.
+`a668069` "enforce valid citations, surface price failures, ground stock_price in tool data": sau review, một câu filing không có marker `[chunk_id]` hợp lệ giờ bị thử lại một lần rồi trả `INSUFFICIENT_TEXT` kèm `error = missing_citation` (`src/finassist/graph.py:97-101`), thay vì trả câu không có nguồn.
 
 ## Thông tin nhóm cần bổ sung (không thể suy ra từ repository)
 
