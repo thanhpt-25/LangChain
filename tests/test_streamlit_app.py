@@ -64,7 +64,7 @@ def test_price_none_score_error_branches(monkeypatch, tmp_path):
     assert any("boom" in w.value for w in at.warning)
     assert "120.50" in [m.value for m in at.metric]
     assert "n/a" in [m.value for m in at.metric]
-    assert any("stale" in m.value for m in at.markdown) or any("stale" in c.value for c in at.caption)
+    assert any(c.value == "⚠ stale (cached price)" for c in at.caption)
     assert [e.label for e in at.expander] == ["chunk-1"]
     assert any(c.value == "No citations." for c in at.caption)
 
@@ -107,3 +107,14 @@ def test_live_failure_shows_error(monkeypatch, tmp_path):
     at.run()
     assert not at.exception
     assert any("Live run failed: RuntimeError: no key" in e.value for e in at.error)
+
+
+def test_citation_table_escapes_dollars_so_quotes_are_not_latex(monkeypatch, tmp_path):
+    # st.table renders GitHub-flavoured Markdown in cells, where "$ ... $" would become LaTeX.
+    cite = {"source": "AAPL 10-K FY2025", "item": "8", "chunk_id": "AAPL-2025-8-000",
+            "quote": "Americas\n$\n178,353\n$\n167,045"}
+    at = _replay(monkeypatch, tmp_path, _rec(out={"citations": [cite]}))
+    assert not at.exception
+    cell = at.table[0].value.to_dict("records")[0]["quote"]
+    assert "$" not in cell.replace("\\$", "")
+    assert cell.count("\\$") == 2

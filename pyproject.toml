@@ -6,7 +6,7 @@ dependencies = [
   "langchain", "langchain-anthropic", "langchain-huggingface", "langchain-chroma",
   "langchain-text-splitters", "langgraph", "chromadb", "sentence-transformers",
   "pydantic>=2", "python-dotenv", "yfinance", "beautifulsoup4", "lxml", "requests",
-  "ragas", "langsmith", "streamlit>=1.44", "pandas",
+  "ragas", "langsmith", "streamlit>=1.66", "pandas",
 ]
 
 [dependency-groups]

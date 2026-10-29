@@ -31,7 +31,7 @@ def _show_prices(out: dict) -> None:
         cols[2].metric("P/E", f"{p['pe_ratio']:.1f}" if p.get("pe_ratio") is not None else "n/a")
         cols[3].write(f"as of {p['as_of']}")
         if p.get("stale"):
-            cols[3].markdown(":orange-badge[stale]")
+            cols[3].caption("⚠ stale (cached price)")
 
 
 question = st.text_input("Question", "What is NVIDIA's current stock price and how do export controls threaten it?")
@@ -72,7 +72,9 @@ if st.button("Ask") and question:
         st.subheader("Citations")
         cites = out.get("citations") or []
         if cites:
-            st.table([{"source": c["source"], "item": c["item"], "chunk_id": c["chunk_id"], "quote": c["quote"]} for c in cites])
+            # st.table renders Markdown in cells; escape "$" so quoted figures do not turn into LaTeX.
+            st.table([{"source": c["source"], "item": c["item"], "chunk_id": c["chunk_id"],
+                       "quote": c["quote"].replace("$", r"\$")} for c in cites])
         else:
             st.caption("No citations.")
         st.subheader("Retrieved chunks")

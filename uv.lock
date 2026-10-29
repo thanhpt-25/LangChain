@@ -594,7 +594,7 @@ requires-dist = [
     { name = "ragas" },
     { name = "requests" },
     { name = "sentence-transformers" },
-    { name = "streamlit", specifier = ">=1.44" },
+    { name = "streamlit", specifier = ">=1.66" },
     { name = "yfinance" },
 ]
 
