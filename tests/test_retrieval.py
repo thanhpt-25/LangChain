@@ -69,11 +69,34 @@ def test_hybrid_surfaces_a_chunk_the_dense_top_n_missed():
 
 
 def test_hybrid_result_keeps_dense_scores_and_none_for_bm25_only_chunks():
-    store = FakeStore([ck(0, "iPhone sales"), ck(1, "Services revenue"), ck(9, "Net income 133,749")])
+    bm25_only = ck(9, "Net income 133,749")
+    bm25_only.score = None   # chunks_for (the BM25 source) has no dense score
+    store = FakeStore([ck(0, "iPhone sales"), ck(1, "Services revenue"), bm25_only])
     r = Retriever(store, mode="hybrid", candidates=2, top_k=3)
     by_id = {c.chunk_id: c for c in r.retrieve("net income 133,749", ["AAPL"])}
     assert by_id["AAPL-2025-8-000"].score == 0.0
-    assert by_id["AAPL-2025-8-009"].score == 9.0   # FakeStore chunks carry their own score
+    assert by_id["AAPL-2025-8-001"].score == 1.0
+    assert by_id["AAPL-2025-8-009"].score is None
+
+
+def test_retriever_rejects_unknown_mode_directly():
+    with pytest.raises(ValueError):
+        Retriever(FakeStore([]), mode="sparse")
+
+
+def test_make_retriever_falls_back_to_dense_when_reranker_cannot_load(monkeypatch, caplog):
+    import logging
+
+    def boom(name):
+        raise OSError("no network and no cache")
+
+    monkeypatch.setattr("finassist.retrieval.make_scorer", boom)
+    store = FakeStore([ck(i, f"text {i}") for i in range(8)])
+    with caplog.at_level(logging.WARNING, logger="finassist.retrieval"):
+        r = make_retriever(replace(get_settings(), retrieval_mode="dense", reranker="some/model", top_k=3), store)
+    assert isinstance(r, Retriever) and r.scorer is None
+    assert any("falling back to dense" in m for m in caplog.messages)
+    assert r.retrieve("q", ["AAPL"]) == store.search("q", "AAPL", 3)
 
 
 def test_make_retriever_rejects_unknown_mode():

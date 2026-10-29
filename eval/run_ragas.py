@@ -1,5 +1,5 @@
 """Run the golden set through the app and score it with RAGAS.
-Usage: uv run python -m eval.run_ragas
+Usage: uv run python -m eval.run_ragas --tag <name>   (writes reports/ragas_<name>.{json,md}; --tag is required)
 """
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ def score(rows: list[dict], judge, emb) -> pd.DataFrame:
     return sc[cols].reset_index(drop=True)
 
 
-def main(tag: str = "baseline") -> None:
+def main(tag: str) -> None:
     t0 = time.time()
     s = get_settings()
     golden = json.loads((ROOT / "eval" / "golden_set.json").read_text())
@@ -123,7 +123,7 @@ def main(tag: str = "baseline") -> None:
     nums = [r for r in recs if r["category"] == "numeric"]
     ns = {"hits": sum(bool(r["answer_has_expected_number"]) for r in nums), "total": len(nums)}
     errs = [f"{r['id']}: {r['error']}" for r in recs if r["error"]]
-    meta = {"model": s.judge_model, "n": len(scored), "ragas_version": ragas.__version__,
+    meta = {"title": f"RAGAS {tag}", "model": s.judge_model, "n": len(scored), "ragas_version": ragas.__version__,
             "ragas_api": "legacy ragas.metrics classes (deprecated shims) + LangchainLLMWrapper/LangchainEmbeddingsWrapper + evaluate",
             "runtime_s": time.time() - t0, "nan_counts": nan_counts, "numeric_sanity": ns,
             "errors": "; ".join(errs) if errs else None}
@@ -140,9 +140,14 @@ def main(tag: str = "baseline") -> None:
     print((out / f"ragas_{tag}.md").read_text())
 
 
-if __name__ == "__main__":
+def build_parser():
     import argparse
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--tag", default="baseline", help="output files are reports/ragas_<tag>.{json,md}")
-    main(ap.parse_args().tag)
+    # required: no default, so a run can never overwrite the annotated reports/ragas_baseline.*
+    ap.add_argument("--tag", required=True, help="output files are reports/ragas_<tag>.{json,md}")
+    return ap
+
+
+if __name__ == "__main__":
+    main(build_parser().parse_args().tag)

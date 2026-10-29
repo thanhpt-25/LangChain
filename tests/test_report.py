@@ -56,3 +56,8 @@ def test_caveats_report_app_failures_dynamically():
 def test_self_grading_caveat_omitted_when_judge_differs_from_app_model():
     assert "grades its own output" not in _md(app_model="some/other-model")
     assert "grades its own output" in _md(app_model="kr/claude-sonnet-5.5")
+
+
+def test_title_comes_from_meta_with_baseline_default():
+    assert _md().startswith("# RAGAS baseline")
+    assert _md(title="RAGAS retrieval_v2").startswith("# RAGAS retrieval_v2")

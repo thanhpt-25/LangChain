@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 import re
 from typing import Callable, Protocol
 
 from finassist.config import Settings
 from finassist.schemas import Chunk
+
+log = logging.getLogger(__name__)
 
 Scorer = Callable[[str, list[str]], list[float]]
 
@@ -46,6 +49,9 @@ class SearchStore(Protocol):
 class Retriever:
     def __init__(self, store: SearchStore, *, mode: str = "dense", scorer: Scorer | None = None,
                  candidates: int = 30, top_k: int = 5):
+        """The BM25 index is cached per ticker and never invalidated: build a new Retriever after re-ingesting."""
+        if mode not in ("dense", "hybrid"):
+            raise ValueError(f"retrieval mode must be 'dense' or 'hybrid', got {mode!r}")
         self.store = store
         self.mode = mode
         self.scorer = scorer
@@ -90,7 +96,12 @@ class Retriever:
 
 
 def make_retriever(settings: Settings, store: SearchStore) -> Retriever:
-    if settings.retrieval_mode not in ("dense", "hybrid"):
+    if settings.retrieval_mode not in ("dense", "hybrid"):  # fail before the slow model load
         raise ValueError(f"FINASSIST_RETRIEVAL must be 'dense' or 'hybrid', got {settings.retrieval_mode!r}")
-    return Retriever(store, mode=settings.retrieval_mode, scorer=make_scorer(settings.reranker),
+    try:
+        scorer = make_scorer(settings.reranker)
+    except Exception as exc:  # model not cached and no network, corrupt cache, ...
+        log.warning("reranker %s unavailable (%r); falling back to dense top-k", settings.reranker, exc)
+        scorer = None
+    return Retriever(store, mode=settings.retrieval_mode, scorer=scorer,
                      candidates=settings.candidates, top_k=settings.top_k)

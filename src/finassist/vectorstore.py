@@ -50,6 +50,7 @@ class FilingStore:
         if self._embed_prefix:
             # Embed "AAPL FY2025 Item 8\n<text>" but store (and later show the LLM) only <text>.
             vectors = self._embeddings.embed_documents([f"{c.context_prefix}\n{c.text}" for c in chunks])
+            # private _collection: langchain-chroma has no add-with-precomputed-vectors API, so upsert directly
             self._db._collection.upsert(ids=ids, embeddings=vectors,
                                         documents=[c.text for c in chunks], metadatas=metadatas)
         else:

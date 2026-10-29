@@ -176,3 +176,28 @@ def test_make_deps_retrieve_delegates_to_the_retriever():
     got = deps.retrieve("english query", ["AAPL"])
     assert [c.chunk_id for c in got] == ["AAPL-2025-8-001"]
     assert r.calls == [("english query", ["AAPL"])]
+
+
+def test_make_deps_builds_the_retriever_once_and_lazily(monkeypatch):
+    from types import SimpleNamespace
+
+    built = []
+
+    class Fake:
+        def retrieve(self, query, tickers):
+            return []
+
+    def fake_make(settings, store):
+        built.append(1)
+        return Fake()
+
+    class FakeLLM:
+        def with_structured_output(self, *a, **k):
+            return object()
+
+    monkeypatch.setattr("finassist.chains.make_retriever", fake_make)
+    deps = make_deps(SimpleNamespace(cache_dir=Path("."), price_offline=True), object(), FakeLLM())
+    assert built == []
+    deps.retrieve("q", ["AAPL"])
+    deps.retrieve("q2", ["AAPL"])
+    assert built == [1]

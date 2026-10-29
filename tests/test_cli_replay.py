@@ -68,7 +68,7 @@ def test_live_failure_prints_one_line_with_replay_hint(capsys, monkeypatch):
         main()
     assert e.value.code == 1
     err = capsys.readouterr().err
-    assert "error: ConnectionError: router down" in err and "--replay" in err
+    assert "error: ConnectionError: router down" in err and "--replay" in err and "offline" in err
     assert len(err.strip().splitlines()) == 1
 
 
