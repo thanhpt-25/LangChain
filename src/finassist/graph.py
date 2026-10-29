@@ -34,6 +34,7 @@ class GraphState(TypedDict, total=False):
     question: str
     intent: Intent
     tickers: list[str]
+    search_query: str
     price_data: list[PriceInfo]
     retrieved_chunks: list[Chunk]
     answer: str
@@ -60,8 +61,9 @@ def build_graph(deps: Deps):
         res = deps.classify(state["question"])
         tickers = [t for t in dict.fromkeys(x.strip().upper() for x in res.tickers) if t in TICKERS]
         intent = res.intent if (tickers or res.intent == "out_of_scope") else "out_of_scope"
-        return {"intent": intent, "tickers": tickers, "retrieved_chunks": [], "price_data": [], "error": None,
-                "short_circuit": False}
+        sq = (res.search_query or "").strip() if res.language == "other" else ""
+        return {"intent": intent, "tickers": tickers, "search_query": sq or state["question"],
+                "retrieved_chunks": [], "price_data": [], "error": None, "short_circuit": False}
 
     def route(state: GraphState) -> str:
         return {"price": "price_tool", "both": "price_tool", "filing": "retrieve", "out_of_scope": "refuse"}[state["intent"]]
@@ -79,7 +81,7 @@ def build_graph(deps: Deps):
         return "retrieve" if state["intent"] == "both" else "generate_answer"
 
     def retrieve(state: GraphState) -> GraphState:
-        return {"retrieved_chunks": deps.retrieve(state["question"], state["tickers"])}
+        return {"retrieved_chunks": deps.retrieve(state["search_query"], state["tickers"])}
 
     def generate_answer(state: GraphState) -> GraphState:
         intent = state["intent"]
@@ -103,14 +105,17 @@ def build_graph(deps: Deps):
         chunks = state["retrieved_chunks"]
         prices = state["price_data"]
         tool_prices = {"stock_price": prices[0] if len(prices) == 1 else None, "stock_prices": list(prices)}
+        only_ticker = state["tickers"][0] if len(state["tickers"]) == 1 else None
         if state.get("short_circuit"):
-            return {"output": FinanceAnswer(intent=intent, answer=answer, **tool_prices)}
+            return {"output": FinanceAnswer(intent=intent, answer=answer, ticker=only_ticker, **tool_prices)}
         out = deps.structure(state["question"], answer, chunks, prices, intent)
         out = ground_numbers(out, chunks)
         out = out.model_copy(update={
             "citations": extract_citations(answer, chunks) if intent in ("filing", "both") else [],
             **tool_prices,
         })
+        if out.ticker is None and only_ticker:
+            out = out.model_copy(update={"ticker": only_ticker})
         return {"output": out}
 
     def refuse(state: GraphState) -> GraphState:

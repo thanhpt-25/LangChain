@@ -56,6 +56,9 @@ class FinanceAnswer(BaseModel):
 class IntentResult(BaseModel):
     intent: Intent
     tickers: list[str] = Field(default_factory=list)
+    language: Literal["en", "other"] = "en"
+    search_query: str | None = Field(
+        default=None, description="English rewrite of the question for retrieval; only when language is 'other'")
 
 
 class LLMExtraction(BaseModel):

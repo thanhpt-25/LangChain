@@ -20,7 +20,8 @@ Return intent:
 - "filing": needs facts from the company's latest 10-K (revenue, EPS, net income, risk factors, MD&A, business).
 - "both": needs both a current price/market data and 10-K facts.
 - "out_of_scope": other companies, investment advice (should I buy/sell, price predictions), or anything not about these companies' finances.
-Return tickers as a list drawn from {list(TICKERS)} (map company names to tickers). Use [] if none apply."""
+Return tickers as a list drawn from {list(TICKERS)} (map company names to tickers). Use [] if none apply.
+Also return language: "en" if the question is in English, otherwise "other" (e.g. Vietnamese). When language is "other", set search_query to a faithful English rewrite of the question (keep company names and financial terms, so it can be matched against English 10-K text); when language is "en", set search_query to null."""
 
 GENERATE_SYSTEM = """You answer finance questions using ONLY the provided context.
 Rules:
@@ -147,9 +148,10 @@ def make_deps(settings: Settings, store: FilingStore, llm: ChatAnthropic) -> Dep
             if ext.revenue is None and ext.eps is None and not ext.ticker and not ext.risk_factors:
                 log.warning("empty extraction despite %d chunks: %s", len(chunks), ext.model_dump())
             tickers = {c.ticker for c in chunks}
-            update: dict = {"fiscal_year": max(c.fiscal_year for c in chunks)}
+            update: dict = {"fiscal_year": None}
             if len(tickers) == 1:
                 update["ticker"] = next(iter(tickers))
+                update["fiscal_year"] = max(c.fiscal_year for c in chunks)
             ext = ext.model_copy(update=update)
         return FinanceAnswer(intent=intent, answer=answer, ticker=ext.ticker, fiscal_year=ext.fiscal_year,
                              revenue=ext.revenue, eps=ext.eps, risk_factors=ext.risk_factors)

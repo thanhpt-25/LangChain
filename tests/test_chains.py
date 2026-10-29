@@ -144,3 +144,11 @@ def test_structure_context_narrowed_to_cited_chunks(tmp_path):
     assert "BBB" in seen["human"] and "AAA" not in seen["human"]
     deps.structure("q", "no markers", cs, [], "filing")
     assert "AAA" in seen["human"] and "BBB" in seen["human"]
+
+
+def test_structure_fiscal_year_from_chunks_only_for_single_ticker(tmp_path):
+    deps = _deps({"parsed": LLMExtraction(fiscal_year=2030), "raw": None, "parsing_error": None}, tmp_path)
+    mixed = [_chunk("AAPL-2025-7-001", fy=2025), _chunk("MSFT-2026-7-001", ticker="MSFT", fy=2026)]
+    assert deps.structure("q", "a", mixed, [], "filing").fiscal_year is None
+    single = [_chunk("AAPL-2024-7-001", fy=2024), _chunk("AAPL-2025-7-002", fy=2025)]
+    assert deps.structure("q", "a", single, [], "filing").fiscal_year == 2025
