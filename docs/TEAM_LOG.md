@@ -2,11 +2,11 @@
 
 ## Ai đã làm gì
 
-Repo này có một tác giả git duy nhất (`thanh.pt`): 44 commit từ 2026-10-28 đến 2026-10-29, tính đến `ad9ba10` (theo `git log`). Dự án do một người thực hiện, với sự hỗ trợ của AI, theo phương pháp spec-driven development. Người làm viết spec (`docs/superpowers/specs/2026-10-28-finance-rag-assistant-design.md`) và plan (`docs/superpowers/plans/2026-10-28-finance-rag-assistant.md`), rồi giao từng task cho subagent AI thực hiện và review, mỗi task một vài commit. Repo không có bằng chứng về đóng góp của thành viên khác, nên bảng dưới không ghi ai ngoài tác giả này.
+Repo này có một tác giả git duy nhất (`thanh.pt`): 66 commit từ 2026-10-28 đến 2026-10-29 (theo `git log`, tính cả hai commit tài liệu cuối của đợt truy hồi, trong đó `5be9242` là commit đầu). Dự án do một người thực hiện, với sự hỗ trợ của AI, theo phương pháp spec-driven development. Người làm viết spec (`docs/superpowers/specs/2026-10-28-finance-rag-assistant-design.md`) và plan (`docs/superpowers/plans/2026-10-28-finance-rag-assistant.md`), rồi giao từng task cho subagent AI thực hiện và review, mỗi task một vài commit. Repo không có bằng chứng về đóng góp của thành viên khác, nên bảng dưới không ghi ai ngoài tác giả này.
 
 ## Bảng commit
 
-Lấy từ `git log --format='%h %ad %an %s' --date=short`. Nhánh `feat/finance-assistant` đã được merge vào `main` ở `f7a31c8`.
+Lấy từ `git log --format='%h %ad %an %s' --date=short`. Nhánh `feat/finance-assistant` đã được merge vào `main` ở `f7a31c8`. Các dòng từ "Viết lại `docs/ARCHITECTURE.md`" trở xuống nằm trên nhánh `feat/retrieval-improvement`, chưa merge vào `main` tại thời điểm viết.
 
 | date | who | work | evidence (commit) |
 |---|---|---|---|
@@ -33,8 +33,16 @@ Lấy từ `git log --format='%h %ad %an %s' --date=short`. Nhánh `feat/finance
 | 2026-10-29 | thanh.pt | Mục lục tài liệu tiếng Việt, dịch heading của spec và evidence, plan hồi cứu; cập nhật `file:line` | `f4e8131`, `af455bd` |
 | 2026-10-29 | thanh.pt | Merge nhánh `feat/finance-assistant` vào `main` | `f7a31c8` |
 | 2026-10-29 | thanh.pt | Viết lại `docs/ARCHITECTURE.md` | `ad9ba10` |
-
-Các commit sau `ad9ba10` chỉ chỉnh tài liệu và dọn repo; xem `git log` để biết chi tiết.
+| 2026-10-29 | thanh.pt | README tiếng Việt, đồng bộ demo script và knowledge check với đánh số mới, làm mới team log và next step | `7cc731a`, `46e1d1c`, `3d69af6` |
+| 2026-10-29 | thanh.pt | Dọn `.gitkeep`; tắt hai cảnh báo deprecation đã biết của ragas và langchain-community | `376a0e2`, `f17b7ef` |
+| 2026-10-29 | thanh.pt | Spec và kế hoạch cải thiện truy hồi; giữ lần chạy lại RAGAS bên cạnh baseline đã chú giải | `d51e15f`, `becd346`, `d662d52` |
+| 2026-10-29 | thanh.pt | `Retriever` (BM25, RRF, cross-encoder), cấu hình truy hồi, `make_deps` đi qua `Retriever` | `db6c9b6`, `b02ecb9`, `69b9de8` |
+| 2026-10-29 | thanh.pt | Bộ đo truy hồi: nhóm bằng chứng viết tay, bộ đo, giai đoạn 0, test ranh giới | `429a51a`, `8e94797`, `dccc959` |
+| 2026-10-29 | thanh.pt | Thí nghiệm giai đoạn 1 (reranker), 2 (hybrid), 3 (hàng bảng và tiền tố embed) và báo cáo | `c4b40e3`, `c4e2fdb`, `0ae3424`, `aa11e30` |
+| 2026-10-29 | thanh.pt | Mặc định MiniLM, `--tag` cho RAGAS, integration test truy hồi | `3427dab` |
+| 2026-10-29 | thanh.pt | Báo cáo cấu hình cuối và so sánh RAGAS | `0d4b248` |
+| 2026-10-29 | thanh.pt | Tài liệu cho phần truy hồi: ARCHITECTURE và NEXT_STEP | `5be9242` |
+| 2026-10-29 | thanh.pt | Làm mới README, demo script, knowledge check, team log, mục lục tài liệu | commit tài liệu cuối của nhánh (xem `git log`) |
 
 ## Bài học rút ra
 
@@ -42,6 +50,7 @@ Các commit sau `ad9ba10` chỉ chỉnh tài liệu và dọn repo; xem `git log
 - Kiểm tra dữ liệu thật sớm có ích. NVDA đặt financial statements ở Item 15 và Item 8 chỉ là stub, nên phải thêm Item 15 (`676e1bf`). MSFT lặp running header "Item 8", nên phải gộp (`b24e307`).
 - Cho LLM sinh citation hoặc con số rồi tin ngay là rủi ro. Phần đó được chuyển sang mã tất định (`postprocess.py`), vừa kiểm được vừa test được.
 - Judge dùng cùng model với app, nên faithfulness 0.939 cần đọc cùng với Caveats.
+- Đo trước khi tin một cải tiến. Đợt truy hồi thử bốn thứ (reranker MiniLM, reranker bge, hybrid BM25, chunk theo hàng bảng) với ngưỡng đặt trước, và chỉ reranker MiniLM được giữ. Kết quả vẫn dưới mục tiêu (any@5 64% so với 70%, all@5 36% so với 40%), và RAGAS cho chênh lệch nằm trong nhiễu giữa các lần chạy (0.02 đến 0.03), nên mức cải thiện nên đọc là nhỏ. Việc chạy lại baseline để đo nhiễu và việc ghi cả những thí nghiệm bị bỏ là phần giúp kết luận này đáng tin.
 
 ## Bản sửa ưu tiên đã commit
 
