@@ -26,3 +26,7 @@ packages = ["src/finassist"]
 testpaths = ["tests"]
 pythonpath = ["."]
 markers = ["integration: needs router/network, run with RUN_INTEGRATION=1"]
+filterwarnings = [
+  "ignore:Importing .* from 'ragas.metrics' is deprecated:DeprecationWarning",
+  "ignore:`langchain-community` is being sunset:DeprecationWarning",
+]

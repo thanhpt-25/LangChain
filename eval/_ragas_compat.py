@@ -8,6 +8,15 @@ from __future__ import annotations
 
 import sys
 import types
+import warnings
+
+# ragas 0.4.3 still ships the metric classes under `ragas.metrics`, and warns that they move to
+# `ragas.metrics.collections` in v1.0. The new classes take an instructor-based LLM and are not
+# accepted by `ragas.evaluate`, so we stay on the legacy API (pinned in uv.lock) and silence only
+# these two known messages.
+warnings.filterwarnings("ignore", message=r"Importing \w+ from 'ragas\.metrics' is deprecated",
+                        category=DeprecationWarning)
+warnings.filterwarnings("ignore", message=r"`langchain-community` is being sunset", category=DeprecationWarning)
 
 
 def _stub(name: str, **attrs) -> None:
