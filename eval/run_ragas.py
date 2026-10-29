@@ -72,7 +72,7 @@ def score(rows: list[dict], judge, emb) -> pd.DataFrame:
     return sc[cols].reset_index(drop=True)
 
 
-def main() -> None:
+def main(tag: str = "baseline") -> None:
     t0 = time.time()
     s = get_settings()
     golden = json.loads((ROOT / "eval" / "golden_set.json").read_text())
@@ -133,12 +133,16 @@ def main() -> None:
     out.mkdir(exist_ok=True)
     for r in recs:
         r.pop("contexts", None)
-    (out / "ragas_baseline.json").write_text(json.dumps(
+    (out / f"ragas_{tag}.json").write_text(json.dumps(
         {"summary": summary, "nan_counts": nan_counts, "intent_accuracy": ia, "numeric_sanity": ns,
          "meta": {k: v for k, v in meta.items() if k != "errors"}, "per_question": recs}, indent=2))
-    (out / "ragas_baseline.md").write_text(render_markdown(summary, worst, ia, meta))
-    print((out / "ragas_baseline.md").read_text())
+    (out / f"ragas_{tag}.md").write_text(render_markdown(summary, worst, ia, meta))
+    print((out / f"ragas_{tag}.md").read_text())
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--tag", default="baseline", help="output files are reports/ragas_<tag>.{json,md}")
+    main(ap.parse_args().tag)

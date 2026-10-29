@@ -51,7 +51,7 @@ def get_settings() -> Settings:
         top_k=int(os.getenv("FINASSIST_TOP_K", "5")),
         price_offline=os.getenv("FINASSIST_PRICE_OFFLINE", "0") == "1",
         retrieval_mode=os.getenv("FINASSIST_RETRIEVAL", "dense"),
-        reranker=os.getenv("FINASSIST_RERANKER", "none"),
+        reranker=os.getenv("FINASSIST_RERANKER", "cross-encoder/ms-marco-MiniLM-L-6-v2"),
         candidates=int(os.getenv("FINASSIST_CANDIDATES", "30")),
         embed_prefix=os.getenv("FINASSIST_EMBED_PREFIX", "0") == "1",
         table_rows=os.getenv("FINASSIST_TABLE_ROWS", "0") == "1",

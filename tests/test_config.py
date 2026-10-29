@@ -22,7 +22,7 @@ def test_retrieval_settings_defaults(monkeypatch):
         monkeypatch.delenv(name, raising=False)
     s = get_settings()
     assert s.retrieval_mode == "dense"
-    assert s.reranker == "none"
+    assert s.reranker == "cross-encoder/ms-marco-MiniLM-L-6-v2"
     assert s.candidates == 30
     assert s.embed_prefix is False
     assert s.table_rows is False
