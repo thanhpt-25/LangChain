@@ -37,15 +37,33 @@ def _show_prices(out: dict) -> None:
 question = st.text_input("Question", "What is NVIDIA's current stock price and how do export controls threaten it?")
 if st.button("Ask") and question:
     if replay:
-        rec = json.loads((ROOT / "runs" / "demo.json").read_text())
+        try:
+            rec = json.loads((ROOT / "runs" / "demo.json").read_text())
+            rec["output"]["intent"]
+        except Exception as e:
+            st.error(
+                f"Could not load recorded run runs/demo.json ({type(e).__name__}: {e}). "
+                'Generate it with `finassist ask "..." --record runs/demo.json`.'
+            )
+            st.stop()
+        st.info(
+            f"Replaying a recorded run, not a live one. Recorded question: **{rec.get('question', '?')}**. "
+            "The question typed above is ignored."
+        )
     else:
         from finassist.runtime import ask
 
-        with st.spinner("Thinking..."):
-            rec = _record(ask(get_app(), question, tags=["demo"]))
+        try:
+            with st.spinner("Thinking..."):
+                rec = _record(ask(get_app(), question, tags=["demo"]))
+        except Exception as e:
+            st.error(f"Live run failed: {type(e).__name__}: {e}")
+            st.caption("Tick 'Replay recorded run' in the sidebar to use the offline recording.")
+            st.stop()
+        st.caption(f"Q: {question}")
     out = rec["output"]
     st.caption(f"intent: **{out['intent']}**")
-    st.write(out["answer"])
+    st.markdown(out["answer"].replace("$", r"\$"))
     if rec.get("error"):
         st.warning(rec["error"])
     _show_prices(out)
@@ -61,7 +79,7 @@ if st.button("Ask") and question:
         for r in rec.get("retrieved") or []:
             label = r["chunk_id"] if r.get("score") is None else f"{r['chunk_id']}  (distance {r['score']:.3f})"
             with st.expander(label):
-                st.write(r["text"])
+                st.text(r["text"])
     with c2:
         st.subheader("Structured output (JSON)")
         st.json(out)
