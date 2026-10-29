@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import re
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 Intent = Literal["price", "filing", "both", "out_of_scope"]
 
@@ -64,3 +65,14 @@ class LLMExtraction(BaseModel):
     revenue: Money | None = None
     eps: float | None = None
     risk_factors: list[str] = Field(default_factory=list)
+
+    @field_validator("fiscal_year", mode="before")
+    @classmethod
+    def _parse_year(cls, v: object) -> int | None:
+        """Accept 2026, "2026", "FY2026", "fiscal 2026"; anything without a 4-digit year becomes None."""
+        if isinstance(v, bool):
+            return None
+        if isinstance(v, int):
+            return v
+        m = re.search(r"(?<!\d)(\d{4})(?!\d)", str(v)) if v is not None else None
+        return int(m.group(1)) if m else None

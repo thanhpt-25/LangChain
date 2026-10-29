@@ -26,3 +26,14 @@ def test_defaults_are_null_safe():
 def test_stock_prices_defaults_to_empty_list():
     a = FinanceAnswer(intent="price", answer="x")
     assert a.stock_prices == [] and a.stock_price is None
+
+
+from finassist.schemas import LLMExtraction
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("FY2026", 2026), ("fiscal 2026", 2026), ("fiscal year 2025", 2025),
+    (2026, 2026), ("2025", 2025), (None, None), ("unknown", None), ("", None), (True, None),
+])
+def test_llm_extraction_fiscal_year_is_lenient(raw, expected):
+    assert LLMExtraction(fiscal_year=raw).fiscal_year == expected
