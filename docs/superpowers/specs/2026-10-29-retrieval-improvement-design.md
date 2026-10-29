@@ -74,7 +74,7 @@ Truy vấn cho cả ba tầng là `search_query` của đồ thị: câu hỏi g
 Thay đổi thử nghiệm:
 
 - Xuất mỗi hàng bảng (`<tr>`) thành một dòng, các ô cách nhau bằng ` | `: `Net income | 133,749 | 101,832 | 88,136`. Hàng tiêu đề cột được giữ nguyên như một hàng thường.
-- Gắn một tiền tố ngắn (`AAPL FY2025 Item 8`) vào văn bản đem embed và đưa vào chỉ mục BM25. Văn bản lưu trong Chroma và gửi cho LLM giữ nguyên nội dung gốc.
+- Gắn một tiền tố ngắn (`AAPL FY2025 Item 8`) vào văn bản đem embed. Chỉ mục BM25 không dùng tiền tố, vì BM25 dựng riêng cho từng ticker nên ticker và năm giống hệt nhau ở mọi chunk và không phân biệt được gì. Văn bản lưu trong Chroma và gửi cho LLM giữ nguyên nội dung gốc.
 - `finassist ingest` thêm cờ `--rebuild` để xóa collection trước khi nạp. Chunk id đổi khi cách chia đổi, và nạp chồng sẽ để lại các chunk cũ.
 
 Các hàm `split_items`, `chunk_filing` và `chunk_id` giữ nguyên. Số trong hàng có dấu `|` vẫn qua `ground_numbers` vì `_appears` chỉ nhìn các ký tự số và dấu phân cách ngay cạnh.
