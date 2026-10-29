@@ -103,3 +103,14 @@ def test_graph_live_nvda_eps(live_store):
     assert out.citations
     assert out.ticker == "NVDA"
     assert out.eps == 4.90
+
+
+@pytest.mark.skipif(os.getenv("RUN_INTEGRATION") != "1", reason="integration")
+def test_graph_live_vietnamese_export_control_hits_item_1a(live_store):
+    st = _run_graph(live_store, "Rủi ro kiểm soát xuất khẩu đối với NVIDIA là gì?")
+    out = st["output"]
+    print("SEARCH_QUERY", st["search_query"], "\nCHUNKS", [(c.chunk_id, c.item, round(c.score, 3)) for c in st["retrieved_chunks"]],
+          "\nANSWER", st["answer"])
+    assert any(c.item == "1A" for c in st["retrieved_chunks"])
+    assert out.answer.strip() and out.citations
+    assert {c.chunk_id for c in out.citations} <= {c.chunk_id for c in st["retrieved_chunks"]}

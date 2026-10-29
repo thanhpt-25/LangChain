@@ -21,7 +21,9 @@ Return intent:
 - "both": needs both a current price/market data and 10-K facts.
 - "out_of_scope": other companies, investment advice (should I buy/sell, price predictions), or anything not about these companies' finances.
 Return tickers as a list drawn from {list(TICKERS)} (map company names to tickers). Use [] if none apply.
-Also return language: "en" if the question is in English, otherwise "other" (e.g. Vietnamese). When language is "other", set search_query to a faithful English rewrite of the question (keep company names and financial terms, so it can be matched against English 10-K text); when language is "en", set search_query to null."""
+ALWAYS include the fields language and search_query in your answer, even when they are trivial.
+language: "en" if the question is written in English, "other" for any other language (e.g. Vietnamese).
+search_query: when language is "other", an English rewrite of the question that keeps company names and financial terms, so it can be matched against English 10-K text (example: "Rủi ro kiểm soát xuất khẩu đối với NVIDIA là gì?" -> "What are the export control risks for NVIDIA?"). When language is "en", null."""
 
 GENERATE_SYSTEM = """You answer finance questions using ONLY the provided context.
 Rules:
@@ -114,7 +116,7 @@ def make_deps(settings: Settings, store: FilingStore, llm: ChatAnthropic) -> Dep
     cache_path = settings.cache_dir / "prices.json"
 
     def classify(question: str) -> IntentResult:
-        return classifier.invoke([("system", CLASSIFY_SYSTEM), ("human", question)])
+        return classifier.invoke([("system", CLASSIFY_SYSTEM), ("human", f"QUESTION\n{question}")])
 
     def retrieve(question: str, tickers: list[str]) -> list[Chunk]:
         return [c for t in tickers for c in store.search(question, t, settings.top_k)]
