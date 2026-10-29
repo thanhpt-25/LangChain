@@ -160,3 +160,69 @@ Hai biến thể còn lại để tách tác động. 3b (bảng + tiền tố, 
 q10 không được cứu. Chunk duy nhất thỏa bằng chứng của q10 là NVDA-2026-15-142, nay chứa dòng "Data Center | 193,737 | 115,186 | 47,525" (hàng và con số cùng một dòng), nhưng nó không vào 30 ứng viên của vector ở cả ba biến thể (ranks [None]), nên reranker không thể xếp lại nó. Ở baseline chunk đó nằm ở hạng 13. Nguyên nhân gần nhất là biểu diễn embedding của một bảng nhiều số vẫn ở xa câu hỏi bằng lời, và định dạng hàng không thay đổi điều đó. q20 (nhiều nhóm bằng chứng, trong đó có "215,938" và "Up 65%") vẫn có bằng chứng trong top-5 ở cả ba biến thể.
 
 Các câu còn trượt ở top-5 trong cấu hình cuối (giai đoạn 1, vector top-30 + MiniLM): q04, q05, q10, q11, q15, q16, q22, q24, q25. Khoảng cách tới mục tiêu: any@5 64% so với 70%, thiếu 6 điểm (2 câu; 18 trên 25 mới đạt); all@5 36% so với 40%, thiếu 4 điểm (1 câu); p50 149 ms, vượt xa ngưỡng độ trễ. Hai mục tiêu chất lượng chưa đạt sau ba giai đoạn.
+## cấu hình mặc định cuối cùng
+
+Cấu hình: mode=dense, reranker=cross-encoder/ms-marco-MiniLM-L-6-v2, candidates=30, chroma_dir=chroma
+
+| nhóm | n | any@5 | any@10 | any@20 | all@5 | all@10 | all@20 | mrr |
+|---|---|---|---|---|---|---|---|---|
+| overall | 25 | 64% | 76% | 88% | 36% | 44% | 68% | 0.376 |
+| combined | 5 | 40% | 60% | 60% | 40% | 40% | 60% | 0.127 |
+| numeric | 10 | 70% | 80% | 100% | 70% | 80% | 100% | 0.422 |
+| risk | 10 | 70% | 80% | 90% | 0% | 10% | 40% | 0.455 |
+
+Độ trễ mỗi lần truy hồi (ms): p50 134, p95 177
+
+
+
+## So sánh RAGAS đầy đủ: baseline vector, chạy lại, cấu hình cuối
+
+Ba lần chạy cùng 25 câu có bằng chứng, cùng judge `kr/claude-sonnet-5.5` (trùng với LLM của ứng dụng, nên faithfulness có thể bị thổi cao). `ragas_baseline_dense` là baseline đã chú giải, `ragas_baseline_rerun` là lần chạy lại hệ thống vector thuần, `ragas_retrieval_v2` là cấu hình cuối (vector top-30 + MiniLM). Hai lần chạy vector thuần cho biết nhiễu giữa các lần chạy: faithfulness lệch 0.022, context recall lệch 0.033, answer relevancy lệch 0.022, còn context precision trùng nhau (0.309).
+
+| chỉ số | baseline_dense | baseline_rerun | retrieval_v2 |
+|---|---|---|---|
+| faithfulness | 0.939 | 0.961 | 0.939 |
+| context precision | 0.309 | 0.309 | 0.342 |
+| context recall | 0.387 | 0.420 | 0.400 |
+| answer relevancy | 0.687 | 0.665 | 0.766 |
+| intent accuracy (30 câu) | 30/30 | 30/30 | 30/30 |
+| numeric sanity | 7/10 | 6/10 | 7/10 |
+| thời gian chạy (giây) | 814 | 953 | 1134 |
+
+Theo nhóm (faithfulness / context precision / context recall / answer relevancy):
+
+| nhóm | baseline_dense | baseline_rerun | retrieval_v2 |
+|---|---|---|---|
+| combined | 0.903 / 0.000 / 0.333 / 0.561 | 0.966 / 0.000 / 0.433 / 0.585 | 0.922 / 0.107 / 0.267 / 0.768 |
+| numeric | 0.926 / 0.339 / 0.600 / 0.615 | 0.967 / 0.339 / 0.600 / 0.532 | 0.911 / 0.409 / 0.600 / 0.609 |
+| risk | 0.971 / 0.434 / 0.200 / 0.822 | 0.954 / 0.434 / 0.233 / 0.837 | 0.977 / 0.392 / 0.267 / 0.921 |
+
+Thời gian chạy dài hơn vì reranker (khoảng 140 ms mỗi lần truy hồi) và vì lần chạy khác nhau về tải của router; chênh lệch giữa hai lần chạy vector thuần (139 giây) đã lớn bằng nửa chênh lệch tới v2, nên không đọc nó thành chi phí của reranker.
+
+### Đối chiếu tiêu chí mục 6 của spec
+
+Context precision ở nhóm numeric: đạt. 0.409 so với 0.339 ở cả hai lần chạy trước. Ở nhóm combined: đạt về hướng, 0.107 so với 0.000 ở cả hai lần, nhưng giá trị tuyệt đối thấp và là 1 câu (q21) có điểm khác 0.
+
+Context recall ở nhóm numeric: không đạt. 0.600 bằng cả hai lần chạy trước, không tăng. Ở nhóm combined: không đạt, và còn giảm: 0.267 so với 0.333 (dense) và 0.433 (rerun). Nhóm chỉ có 5 câu nên chênh lệch này có thể là nhiễu, nhưng không có bằng chứng recall tăng. Recall tổng thể 0.400 nằm giữa 0.387 và 0.420, tức không phân biệt được với nhiễu.
+
+Faithfulness không giảm quá 0.03: đạt ở mức tổng thể. 0.939 so với 0.939 và 0.961 (thấp hơn lần chạy lại 0.022). Riêng nhóm numeric faithfulness giảm 0.056 so với lần chạy lại (0.911 so với 0.967) và 0.015 so với dense, nên tiêu chí chỉ đạt khi xét tổng thể; q04 (0.875) và q07 (0.600) là hai câu numeric kéo nhóm xuống.
+
+Năm câu cần có bằng chứng trong ngữ cảnh. q03: đạt, câu trả lời đúng 209,586 và bằng chứng nằm trong top-5. q21: đạt, câu trả lời đúng 416,161. q05: không đạt, bằng chứng ở hạng 12, câu trả lời từ chối nêu số. q04: không đạt và còn tệ hơn baseline, bằng chứng ở hạng 7, câu trả lời nói ngữ cảnh không có tổng doanh thu, trong khi ở lần chạy dense có recall 1.0. q24: không đạt, hai nhóm bằng chứng ở hạng 10 và 12, câu trả lời không so sánh được doanh thu (recall 0.5 chỉ từ phía Microsoft).
+
+Kết quả đo được là câu trả lời liên quan hơn (answer relevancy 0.766 so với 0.687 và 0.665, phần lớn do q18, q21 và nhóm combined không còn bị trả lời từ chối) và precision tốt hơn, nhưng recall không tăng và q04 bị hỏng. Hai lần chạy vector thuần cho thấy nhiễu cỡ 0.02 đến 0.03 ở faithfulness và recall, nên các chênh lệch recall và faithfulness ở trên không đủ để kết luận theo hướng nào.
+
+## Kết luận
+
+Cấu hình cuối cùng là vector top-30 từ Chroma, sắp xếp lại bằng cross-encoder `cross-encoder/ms-marco-MiniLM-L-6-v2`, lấy 5 chunk mỗi mã cổ phiếu. Các biến mặc định: `FINASSIST_RETRIEVAL=dense`, `FINASSIST_RERANKER=cross-encoder/ms-marco-MiniLM-L-6-v2`, `FINASSIST_CANDIDATES=30`, `FINASSIST_EMBED_PREFIX=0`, `FINASSIST_TABLE_ROWS=0`, kho `data/chroma` không đổi (id chunk giữ nguyên). Chạy lại bộ đo với mặc định mới cho đúng số của giai đoạn 1a: any@5 64%, all@5 36%, MRR 0.376, p50 134 ms.
+
+So với mục tiêu ở spec mục 6: any@5 đạt 64% so với 70%, thiếu 6 điểm (2 câu); all@5 đạt 36% so với 40%, thiếu 4 điểm (1 câu). Hai mục tiêu chất lượng chưa đạt. Mục tiêu độ trễ (thêm không quá 3 giây ở p50) đạt, thêm khoảng 120 đến 140 ms. So với baseline vector thuần (48% và 28%), any@5 tăng 16 điểm và all@5 tăng 8 điểm.
+
+Các tầng đã bỏ và số liệu. bge-reranker-base: any@5 56% (tăng 8 điểm), all@5 36%, p50 809 ms, nhóm risk giảm từ 60% xuống 50%. Hybrid BM25 với RRF: tốt nhất là hybrid + MiniLM với any@5 64% và all@5 36%, tức tăng 0 điểm so với giai đoạn 1; hybrid không reranker có any@5 56% và nhóm combined về 0%. Chunk theo hàng bảng và tiền tố embed: tốt nhất 56% any@5 và 24% all@5, thấp hơn 8 và 12 điểm, làm hỏng q07, q09, q23 và không cứu q05, q10. Mã của hybrid, bảng và tiền tố vẫn nằm trong repo dưới các biến môi trường tắt mặc định.
+
+Các câu còn trượt ở top-5 (any@5): q04 [7], q05 [12], q10 [13], q11 [None, None], q15 [7, None], q16 [15, 13, 20], q22 [None, None], q24 [10, 12], q25 [None, None]. Với RAGAS, q04 còn tệ đi so với baseline vector (recall 1.0 xuống 0.0).
+
+Ý tưởng chưa thử, bám vào những gì các thí nghiệm cho thấy.
+1. Tách câu hỏi kết hợp (giá cổ phiếu và doanh thu) trước khi truy hồi, hoặc chỉ truy hồi bằng phần nói về báo cáo. Nhóm combined có any@5 40% và recall RAGAS giảm, và q22, q25 không có chunk bằng chứng nào trong 30 ứng viên, nhiều khả năng vì từ ngữ về giá làm lệch vector truy vấn.
+2. Mở rộng truy vấn hoặc dùng HyDE cho các câu số liệu. Chunk bằng chứng của q10 (có nhãn hàng của bảng) nằm ngoài 30 ứng viên ở cả ba biến thể, nên cần một truy vấn gần với nội dung bảng hơn, không phải reranker mạnh hơn.
+3. Chạy tiền tố embed riêng trên văn bản phẳng (chưa có biến thể này), và đo lại reranker theo từng nhóm: MiniLM làm all@5 của nhóm risk giảm từ 10% xuống 0% vì đẩy chunk bằng chứng thứ hai ra khỏi top-5, nên có thể thử đảm bảo độ đa dạng giữa các chunk (ví dụ MMR) sau khi sắp xếp lại.
+Tất cả đều cần kiểm tra trên bộ đo lớn hơn 25 câu trước khi tin kết quả.
