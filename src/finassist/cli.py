@@ -35,7 +35,7 @@ def render_record(rec: dict) -> str:
     return "\n".join(lines)
 
 
-def _record(state: dict) -> dict:
+def to_record(state: dict) -> dict:
     return {
         "question": state["question"],
         "error": state.get("error"),
@@ -78,7 +78,7 @@ def _cmd_ask(question: str, record: str | None, replay: str | None) -> None:
     try:
         from finassist.runtime import ask, build_app
 
-        rec = _record(ask(build_app(), question, tags=["demo"]))
+        rec = to_record(ask(build_app(), question, tags=["demo"]))
         if record:
             Path(record).parent.mkdir(parents=True, exist_ok=True)
             Path(record).write_text(json.dumps(rec, indent=2, ensure_ascii=False), encoding="utf-8")

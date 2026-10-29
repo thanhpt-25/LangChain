@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from finassist.cli import _record, main, render_record
+from finassist.cli import to_record, main, render_record
 from finassist.schemas import Chunk, FinanceAnswer
 
 
@@ -74,12 +74,12 @@ def test_live_failure_prints_one_line_with_replay_hint(capsys, monkeypatch):
 
 def test_record_tolerates_state_without_optional_keys():
     state = {"question": "q", "output": FinanceAnswer(intent="out_of_scope", answer="a")}
-    rec = _record(state)
+    rec = to_record(state)
     assert rec["error"] is None and rec["retrieved"] == [] and rec["output"]["answer"] == "a"
 
 
 def test_record_includes_retrieved_chunks():
     c = Chunk(chunk_id="AAPL-2025-8-000", text="t", ticker="AAPL", fiscal_year=2025, item="8", score=0.3)
-    rec = _record({"question": "q", "error": "e", "output": FinanceAnswer(intent="filing", answer="a"),
+    rec = to_record({"question": "q", "error": "e", "output": FinanceAnswer(intent="filing", answer="a"),
                    "retrieved_chunks": [c]})
     assert rec["error"] == "e" and rec["retrieved"][0]["chunk_id"] == "AAPL-2025-8-000"

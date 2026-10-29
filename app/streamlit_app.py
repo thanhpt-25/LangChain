@@ -2,7 +2,7 @@ import json
 
 import streamlit as st
 
-from finassist.cli import _record
+from finassist.cli import to_record
 from finassist.config import ROOT
 
 st.set_page_config(page_title="Finance AI Assistant", layout="wide")
@@ -38,7 +38,7 @@ question = st.text_input("Question", "What is NVIDIA's current stock price and h
 if st.button("Ask") and question:
     if replay:
         try:
-            rec = json.loads((ROOT / "runs" / "demo.json").read_text())
+            rec = json.loads((ROOT / "runs" / "demo.json").read_text(encoding="utf-8"))
             rec["output"]["intent"]
         except Exception as e:
             st.error(
@@ -55,7 +55,7 @@ if st.button("Ask") and question:
 
         try:
             with st.spinner("Thinking..."):
-                rec = _record(ask(get_app(), question, tags=["demo"]))
+                rec = to_record(ask(get_app(), question, tags=["demo"]))
         except Exception as e:
             st.error(f"Live run failed: {type(e).__name__}: {e}")
             st.caption("Tick 'Replay recorded run' in the sidebar to use the offline recording.")
