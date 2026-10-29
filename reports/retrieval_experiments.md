@@ -226,3 +226,72 @@ Các câu còn trượt ở top-5 (any@5): q04 [7], q05 [12], q10 [13], q11 [Non
 2. Mở rộng truy vấn hoặc dùng HyDE cho các câu số liệu. Chunk bằng chứng của q10 (có nhãn hàng của bảng) nằm ngoài 30 ứng viên ở cả ba biến thể, nên cần một truy vấn gần với nội dung bảng hơn, không phải reranker mạnh hơn.
 3. Chạy tiền tố embed riêng trên văn bản phẳng (chưa có biến thể này), và đo lại reranker theo từng nhóm: MiniLM làm all@5 của nhóm risk giảm từ 10% xuống 0% vì đẩy chunk bằng chứng thứ hai ra khỏi top-5, nên có thể thử đảm bảo độ đa dạng giữa các chunk (ví dụ MMR) sau khi sắp xếp lại.
 Tất cả đều cần kiểm tra trên bộ đo lớn hơn 25 câu trước khi tin kết quả.
+## both-rewrite: control, câu hỏi gốc (cấu hình cuối)
+
+Cấu hình: mode=dense, reranker=cross-encoder/ms-marco-MiniLM-L-6-v2, candidates=30, chroma_dir=chroma, queries=original questions
+
+| nhóm | n | any@5 | any@10 | any@20 | all@5 | all@10 | all@20 | mrr |
+|---|---|---|---|---|---|---|---|---|
+| overall | 25 | 64% | 76% | 88% | 36% | 44% | 68% | 0.376 |
+| combined | 5 | 40% | 60% | 60% | 40% | 40% | 60% | 0.127 |
+| numeric | 10 | 70% | 80% | 100% | 70% | 80% | 100% | 0.422 |
+| risk | 10 | 70% | 80% | 90% | 0% | 10% | 40% | 0.455 |
+
+Độ trễ mỗi lần truy hồi (ms): p50 179, p95 282
+
+## both-rewrite: truy vấn do bộ phân loại viết lại (chạy thật)
+
+Cấu hình: mode=dense, reranker=cross-encoder/ms-marco-MiniLM-L-6-v2, candidates=30, chroma_dir=chroma, queries=classifier rewrite (live)
+
+| nhóm | n | any@5 | any@10 | any@20 | all@5 | all@10 | all@20 | mrr |
+|---|---|---|---|---|---|---|---|---|
+| overall | 25 | 72% | 80% | 92% | 40% | 52% | 72% | 0.404 |
+| combined | 5 | 80% | 80% | 80% | 60% | 80% | 80% | 0.267 |
+| numeric | 10 | 70% | 80% | 100% | 70% | 80% | 100% | 0.422 |
+| risk | 10 | 70% | 80% | 90% | 0% | 10% | 40% | 0.455 |
+
+Độ trễ mỗi lần truy hồi (ms): p50 171, p95 238
+
+## both-rewrite: phát lại bảng đã lưu
+
+Cấu hình: mode=dense, reranker=cross-encoder/ms-marco-MiniLM-L-6-v2, candidates=30, chroma_dir=chroma, queries=classifier rewrite (replay of query_rewrites.json)
+
+| nhóm | n | any@5 | any@10 | any@20 | all@5 | all@10 | all@20 | mrr |
+|---|---|---|---|---|---|---|---|---|
+| overall | 25 | 72% | 80% | 92% | 40% | 52% | 72% | 0.404 |
+| combined | 5 | 80% | 80% | 80% | 60% | 80% | 80% | 0.267 |
+| numeric | 10 | 70% | 80% | 100% | 70% | 80% | 100% | 0.422 |
+| risk | 10 | 70% | 80% | 90% | 0% | 10% | 40% | 0.455 |
+
+Độ trễ mỗi lần truy hồi (ms): p50 193, p95 249
+
+
+### Quyết định cho viết lại truy vấn câu both
+
+Giữ. Cổng ở spec 4.4 đạt ở cả hai vế, và lần phát lại bảng đã lưu cho đúng các con số của lần chạy thật.
+
+Số liệu trước và sau (control với câu hỏi gốc, so với bản viết lại do bộ phân loại tạo ra), overall: any@5 64% và 72%, all@5 36% và 40%, any@10 76% và 80%, any@20 88% và 92%, MRR 0.376 và 0.404. Nhóm combined: any@5 40% và 80%, all@5 40% và 60%, any@10 60% và 80%, any@20 60% và 80%, MRR 0.127 và 0.267. Nhóm numeric (any@5 70% và 70%) và risk (70% và 70%) có mọi cột và mọi hạng trùng với control. Độ trễ p50 179 ms và 171 ms, p95 282 ms và 238 ms; hai con số này dao động theo tải máy giữa các lần chạy, nên không đọc ra thành chênh lệch thật.
+
+Cổng: combined any@5 80% so với ngưỡng 60%, đạt; overall any@5 72% so với ngưỡng 64%, đạt; numeric 70% và risk 70% không thấp hơn 70% và 70% của control, đạt. Hai nhóm này gồm 20 câu không phải both nên không đổi theo thiết kế, và các hạng của từng câu trong hai nhóm trùng khít với control, nên số liệu xác nhận điều đó. Bảng intent mà bộ phân loại trả về cho 25 câu có bằng chứng cũng khớp: q01 đến q20 đều là filing, tiếng Anh, và q21 đến q25 đều là both, tiếng Anh, nên không câu nào đổi nhãn.
+
+Hạng của từng nhóm bằng chứng ở q21 đến q25, trước rồi sau.
+- q21 (AAPL): hạng 5 lên hạng 2. Đã nằm trong top-5, được xếp cao hơn.
+- q22 (MSFT, hai nhóm): [None, None] vẫn [None, None]. Không có chunk bằng chứng nào trong 30 ứng viên, cả trước lẫn sau.
+- q23 (NVDA): hạng 3, không đổi.
+- q24 (AAPL và MSFT): [10, 12] lên [4, 4]. Đây là câu chuyển từ trượt sang đạt cả any@5 và all@5.
+- q25 (NVDA, hai nhóm): [None, None] lên [9, 4]. Nhóm thứ hai vào top-5 nên any@5 đạt, nhóm thứ nhất ở hạng 9 nên all@5 chưa đạt.
+Vậy hai câu mới có bằng chứng trong top-5 (q24, q25), một câu cải thiện hạng trong top-5 (q21), một câu không đổi (q23) và một câu vẫn trượt hoàn toàn (q22). Cách tính điểm: any@5 tăng 2 câu và all@5 tăng 1 câu (q24).
+
+Bản viết lại của năm câu, lấy từ reports/query_rewrites.json.
+- q21: "What were Apple's total net sales in its most recent fiscal year?"
+- q22: "What is Microsoft's biggest competitive risk disclosed in its 10-K?"
+- q23: "What was NVIDIA's total revenue in its most recent fiscal year?"
+- q24: "Compare Apple's and Microsoft's total revenue in their most recent fiscal year."
+- q25: "How do export controls threaten NVIDIA's business according to its 10-K?"
+Không bản viết lại nào còn từ về giá (price, P/E, market cap) và không bản nào bỏ mất công ty: q24 giữ cả Apple và Microsoft, ba câu còn lại giữ đúng một công ty của câu gốc. Cũng không bản nào trông sai nghĩa. Chỗ đáng chú ý duy nhất là "last fiscal year" thành "most recent fiscal year", đổi nghĩa không đáng kể. Các câu chỉ nói tới rủi ro (q22, q25) chỉ còn mệnh đề rủi ro nhưng vẫn thêm "10-K" và "disclosed" hoặc "according to its 10-K", và q22 vẫn không tìm được chunk bằng chứng nào, nên lý do của q22 chưa phải từ giá mà nhiều khả năng là vector không đưa được hai đoạn về rào cản gia nhập và đối thủ siêu quy mô vào 30 ứng viên với câu hỏi chung chung như vậy.
+
+Bảng cũng có bản viết lại không rỗng ở 7 câu khác (q07, q12, q13, q15, q16, q17, q18), tất cả là câu filing tiếng Anh. Quy tắc retrieval_query không dùng chúng, các câu đó vẫn truy hồi bằng câu hỏi gốc, và hạng của chúng trùng control, nên đây không phải là lỗi, chỉ là bộ phân loại điền search_query khi không cần.
+
+Khoảng cách tới mục tiêu ở spec mục 6 sau thay đổi: any@5 72% so với 70%, vượt 2 điểm (18 trên 25 là 72%, mục tiêu cần 17,5 câu); all@5 40% so với 40%, vừa đúng (10 trên 25). Hai mục tiêu chất lượng đạt, nhưng chỉ vừa sát ngưỡng, và all@5 sẽ rơi xuống 36% nếu mất một câu.
+
+Mức tin cậy. Mỗi câu combined chiếm 20 điểm trong nhóm combined và 4 điểm trong số liệu chung. Quyết định này dựa trên 5 câu, trong đó 2 câu đổi hạng đủ để đổi any@5 (q24 và q25) và 1 câu đổi all@5 (q24). Đó là mẫu mỏng: một câu lệch là 20 điểm ở combined và 4 điểm ở overall, và việc vượt mục tiêu any@5 là nhờ đúng hai câu đó. Bản viết lại do LLM tạo cũng có thể khác ở lần chạy khác; bảng đã lưu giúp phát lại đúng số liệu này nhưng không chứng minh rằng bộ phân loại sẽ viết lại giống thế mỗi lần. Cần bộ đo lớn hơn 25 câu, nhiều câu both hơn, trước khi coi kết quả là ổn định.
