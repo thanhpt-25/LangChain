@@ -45,7 +45,7 @@ Tạo lại bản ghi: `uv run finassist ask "..." --record runs/demo.json` (c�
 - [ ] Khóa API (router, LangSmith) không hiện trên màn hình. Trace URL LangSmith nằm trong `docs/evidence/links.md`; mở trang LangSmith ở tab riêng và chỉ chia sẻ tab đó, không chia sẻ màn hình có thanh Settings/API keys.
 - [ ] Đóng các tab trình duyệt không liên quan (mail, chat, tab có thông tin cá nhân) trước khi chia sẻ màn hình.
 - [ ] Tắt thông báo hệ thống.
-- [ ] Trước giờ demo: `git ls-files | grep -E '^\.env$'` phải rỗng và `git grep -nE 'sk-[A-Za-z0-9-]{12,}|lsv2_pt_'` không có kết quả.
+- [ ] Trước giờ demo: `git ls-files | grep -E '^\.env$'` phải rỗng và `git grep -nE 'sk-[A-Za-z0-9-]{12,}|lsv2_pt_' -- . ':!docs/DEMO_SCRIPT.md'` không có kết quả (loại trừ chính file này vì nó chứa mẫu regex).
 - [ ] Chạy thử `uv run finassist ask x --replay runs/demo.json` một lần trước giờ demo.
 - [ ] Cỡ chữ terminal và trình duyệt đủ lớn để cả phòng đọc được.
 
