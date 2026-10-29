@@ -138,3 +138,59 @@ def test_candidate_warning():
     for mode, rr in (("hybrid", "none"), ("dense", "bge")):
         w = candidate_warning(10, mode, rr)
         assert w is not None and "10" in w and "20" in w
+
+
+def test_query_for_applies_the_graph_rules():
+    from eval.retrieval_eval import query_for
+
+    table = {
+        "q21": {"intent": "both", "tickers": ["AAPL"], "language": "en", "search_query": "What were Apple's net sales?"},
+        "q01": {"intent": "filing", "tickers": ["AAPL"], "language": "en", "search_query": "ignored"},
+        "q90": {"intent": "both", "tickers": ["TSLA"], "language": "en", "search_query": "rewrite"},
+    }
+    assert query_for({"id": "q21", "question": "price and revenue?"}, table) == "What were Apple's net sales?"
+    assert query_for({"id": "q01", "question": "net sales?"}, table) == "net sales?"
+    assert query_for({"id": "q90", "question": "tesla?"}, table) == "tesla?"      # uncovered ticker: out_of_scope
+    assert query_for({"id": "q21", "question": "price and revenue?"}, None) == "price and revenue?"
+    assert query_for({"id": "q77", "question": "x"}, table) == "x"                # not in the table
+
+
+def test_rewrite_table_classifies_each_scored_question_once():
+    from eval.retrieval_eval import rewrite_table
+    from finassist.schemas import IntentResult
+
+    golden = [{"id": "q1", "category": "numeric", "question": "a"}, {"id": "q2", "category": "trap", "question": "b"}]
+    calls = []
+
+    def classify(q):
+        calls.append(q)
+        return IntentResult(intent="filing", tickers=["AAPL"])
+
+    table = rewrite_table(golden, classify)
+    assert calls == ["a"]
+    assert table == {"q1": IntentResult(intent="filing", tickers=["AAPL"]).model_dump()}
+
+
+def test_evaluate_uses_query_of_for_retrieval_and_cache_key():
+    golden = [{"id": "q1", "category": "combined", "question": "price and revenue?",
+               "evidence": [{"ticker": "AAPL", "contains": ["416,161"]}]}]
+    seen = []
+
+    def retrieve(query, ticker):
+        seen.append(query)
+        return [ch("Total net sales 416,161")]
+
+    rows, _ = evaluate(golden, retrieve, query_of=lambda q: "net sales?")
+    assert seen == ["net sales?"]
+    assert rows[0]["ranks"] == [1]
+
+
+def test_main_rejects_conflicting_rewrite_options():
+    import pytest as _pytest
+
+    from eval.retrieval_eval import main
+
+    with _pytest.raises(SystemExit):
+        main(["--label", "x", "--classify", "--rewrites", "r.json"])
+    with _pytest.raises(SystemExit):
+        main(["--label", "x", "--save-rewrites", "r.json"])

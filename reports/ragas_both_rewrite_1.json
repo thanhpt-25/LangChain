@@ -1,0 +1,1403 @@
+{
+  "summary": {
+    "mean": {
+      "faithfulness": 0.9521091000502766,
+      "llm_context_precision_with_reference": 0.3765555555291796,
+      "context_recall": 0.42,
+      "answer_relevancy": 0.7721319379563153
+    },
+    "by_category": {
+      "combined": {
+        "faithfulness": 0.9833333333333332,
+        "llm_context_precision_with_reference": 0.281666666648713,
+        "context_recall": 0.3333333333333333,
+        "answer_relevancy": 0.7685380873229912
+      },
+      "numeric": {
+        "faithfulness": 0.9088675213675215,
+        "llm_context_precision_with_reference": 0.40888888886150926,
+        "context_recall": 0.6,
+        "answer_relevancy": 0.6088214999046546
+      },
+      "risk": {
+        "faithfulness": 0.9797385620915033,
+        "llm_context_precision_with_reference": 0.3916666666370833,
+        "context_recall": 0.2833333333333333,
+        "answer_relevancy": 0.9372393013246381
+      }
+    }
+  },
+  "nan_counts": {
+    "faithfulness": 0,
+    "llm_context_precision_with_reference": 0,
+    "context_recall": 0,
+    "answer_relevancy": 0
+  },
+  "intent_accuracy": {
+    "correct": 30,
+    "total": 30
+  },
+  "numeric_sanity": {
+    "hits": 7,
+    "total": 10
+  },
+  "meta": {
+    "title": "RAGAS both_rewrite_1",
+    "model": "kr/claude-sonnet-5.5",
+    "n": 25,
+    "ragas_version": "0.4.3",
+    "ragas_api": "legacy ragas.metrics classes (deprecated shims) + LangchainLLMWrapper/LangchainEmbeddingsWrapper + evaluate",
+    "runtime_s": 836.1941120624542,
+    "nan_counts": {
+      "faithfulness": 0,
+      "llm_context_precision_with_reference": 0,
+      "context_recall": 0,
+      "answer_relevancy": 0
+    },
+    "numeric_sanity": {
+      "hits": 7,
+      "total": 10
+    }
+  },
+  "per_question": [
+    {
+      "id": "q01",
+      "category": "numeric",
+      "question": "What were Apple's total net sales in its most recent fiscal year?",
+      "ground_truth": "Apple's total net sales were $416,161 million in fiscal 2025, compared with $391,035 million in fiscal 2024 (AAPL-2025-7-005).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "Apple's total net sales in fiscal 2025 were $416,161 million (about $416.2 billion), up 6% from $391,035 million in fiscal 2024 [AAPL-2025-7-006][AAPL-2025-7-005].\n\nFiscal 2025 is the most recent year in the provided context.",
+      "retrieved": [
+        {
+          "chunk_id": "AAPL-2025-8-024",
+          "item": "8",
+          "distance": 0.5519999265670776
+        },
+        {
+          "chunk_id": "AAPL-2025-8-023",
+          "item": "8",
+          "distance": 0.41316795349121094
+        },
+        {
+          "chunk_id": "AAPL-2025-7-006",
+          "item": "7",
+          "distance": 0.5618895292282104
+        },
+        {
+          "chunk_id": "AAPL-2025-7-007",
+          "item": "7",
+          "distance": 0.46177414059638977
+        },
+        {
+          "chunk_id": "AAPL-2025-7-005",
+          "item": "7",
+          "distance": 0.5413742065429688
+        }
+      ],
+      "ticker": "AAPL",
+      "fiscal_year": 2025,
+      "revenue": {
+        "value": 416161.0,
+        "unit": "USD millions",
+        "period": "FY2025"
+      },
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": true,
+      "expected_figure": "416,161",
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.5888888888692593,
+        "context_recall": 1.0,
+        "answer_relevancy": 0.8563529102392707
+      }
+    },
+    {
+      "id": "q02",
+      "category": "numeric",
+      "question": "What was Apple's diluted earnings per share in its most recent fiscal year?",
+      "ground_truth": "Apple's diluted earnings per share were $7.46 in fiscal 2025, versus $6.08 in fiscal 2024 (AAPL-2025-8-002).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "Apple's diluted EPS for fiscal 2025 (year ended September 27, 2025) was $7.46, compared with $6.08 in fiscal 2024 and $6.13 in fiscal 2023 [AAPL-2025-8-026]. This was based on 15,004,697 thousand weighted-average diluted shares [AAPL-2025-8-026].\n\nThe EPS table in the retrieved text doesn't show its column headers. I read the first value as 2025 because the filing's other statements use the same 2025, 2024, 2023 order [AAPL-2025-8-003].",
+      "retrieved": [
+        {
+          "chunk_id": "AAPL-2025-8-026",
+          "item": "8",
+          "distance": 0.4160277545452118
+        },
+        {
+          "chunk_id": "AAPL-2025-8-003",
+          "item": "8",
+          "distance": 0.3542322516441345
+        },
+        {
+          "chunk_id": "AAPL-2025-8-006",
+          "item": "8",
+          "distance": 0.42754852771759033
+        },
+        {
+          "chunk_id": "AAPL-2025-8-008",
+          "item": "8",
+          "distance": 0.45820897817611694
+        },
+        {
+          "chunk_id": "AAPL-2025-7-014",
+          "item": "7",
+          "distance": 0.5173009634017944
+        }
+      ],
+      "ticker": "AAPL",
+      "fiscal_year": 2025,
+      "revenue": null,
+      "eps": 7.46,
+      "error": null,
+      "answer_has_expected_number": true,
+      "expected_figure": "7.46",
+      "scores": {
+        "faithfulness": 0.75,
+        "llm_context_precision_with_reference": 0.99999999995,
+        "context_recall": 1.0,
+        "answer_relevancy": 0.8274784794936901
+      }
+    },
+    {
+      "id": "q03",
+      "category": "numeric",
+      "question": "How much net sales did Apple's iPhone segment generate in its most recent fiscal year?",
+      "ground_truth": "iPhone net sales were $209,586 million in fiscal 2025, up 4% from $201,183 million in fiscal 2024 (AAPL-2025-7-006).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "In fiscal 2025, iPhone net sales were $209,586 million, up 4% from $201,183 million in 2024 [AAPL-2025-7-006]. The increase was due to higher net sales of Pro models [AAPL-2025-7-007].\n\niPhone is reported as a product category, not a reportable segment. The segments are geographic.\n\nThe context only covers fiscal 2025. Given today's date, a later fiscal year may have ended, but I can't confirm that from what was provided.",
+      "retrieved": [
+        {
+          "chunk_id": "AAPL-2025-8-024",
+          "item": "8",
+          "distance": 0.5101736187934875
+        },
+        {
+          "chunk_id": "AAPL-2025-7-005",
+          "item": "7",
+          "distance": 0.4543662369251251
+        },
+        {
+          "chunk_id": "AAPL-2025-7-007",
+          "item": "7",
+          "distance": 0.5115327835083008
+        },
+        {
+          "chunk_id": "AAPL-2025-7-006",
+          "item": "7",
+          "distance": 0.6027657389640808
+        },
+        {
+          "chunk_id": "AAPL-2025-8-023",
+          "item": "8",
+          "distance": 0.530447244644165
+        }
+      ],
+      "ticker": "AAPL",
+      "fiscal_year": 2025,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": true,
+      "expected_figure": "209,586",
+      "scores": {
+        "faithfulness": 0.75,
+        "llm_context_precision_with_reference": 0.249999999975,
+        "context_recall": 1.0,
+        "answer_relevancy": 0.8021528671485866
+      }
+    },
+    {
+      "id": "q04",
+      "category": "numeric",
+      "question": "What was Microsoft's total revenue in its most recent fiscal year?",
+      "ground_truth": "Microsoft's total revenue was $331,839 million for the year ended June 30, 2026, compared with $281,724 million in the prior year (MSFT-2026-8-000).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "The context doesn't state Microsoft's total revenue for fiscal year 2026. It only gives the change: revenue increased $50.1 billion, or 18%, versus fiscal 2025 [MSFT-2026-7-017].\n\nRelated figures that are not total revenue:\n- Microsoft Cloud revenue, one component, was $214.4 billion in fiscal 2026 [MSFT-2026-8-134].\n- The pro forma revenue of $247,442 million in the context is for fiscal 2024 and is not the latest year [MSFT-2026-8-079].\n\nTo get the total, I'd need the income statement or segment revenue table from Item 8.",
+      "retrieved": [
+        {
+          "chunk_id": "MSFT-2026-8-134",
+          "item": "8",
+          "distance": 0.4623224139213562
+        },
+        {
+          "chunk_id": "MSFT-2026-7-002",
+          "item": "7",
+          "distance": 0.38592737913131714
+        },
+        {
+          "chunk_id": "MSFT-2026-7-017",
+          "item": "7",
+          "distance": 0.6345282793045044
+        },
+        {
+          "chunk_id": "MSFT-2026-8-079",
+          "item": "8",
+          "distance": 0.4343271851539612
+        },
+        {
+          "chunk_id": "MSFT-2026-7-021",
+          "item": "7",
+          "distance": 0.4716694951057434
+        }
+      ],
+      "ticker": "MSFT",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": false,
+      "expected_figure": "331,839",
+      "scores": {
+        "faithfulness": 0.8461538461538461,
+        "llm_context_precision_with_reference": 0.0,
+        "context_recall": 0.0,
+        "answer_relevancy": 0.0
+      }
+    },
+    {
+      "id": "q05",
+      "category": "numeric",
+      "question": "What was Microsoft's net income in its most recent fiscal year?",
+      "ground_truth": "Microsoft's net income was $133,749 million for the year ended June 30, 2026, compared with $101,832 million in the prior year (MSFT-2026-8-001).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "The provided context doesn't include Microsoft's reported (GAAP) net income for fiscal year 2026, so I can't give you that figure.\n\nRelated data in the context:\n- Adjusted diluted EPS (non-GAAP) is shown as $17.28, versus $14.13 in the prior period, up 22%. This excludes net gains and losses from investments in OpenAI, and it is not net income. [MSFT-2026-7-017]\n- Revenue increased $50.1 billion, or 18%, and gross margin increased $31.6 billion, or 16%, compared with fiscal year 2025. [MSFT-2026-7-017]\n- The only net income figures are unaudited pro forma amounts for fiscal 2024 and 2023 ($88,308 million and $71,383 million), which assume an acquisition closed on July 1, 2022. They are not reported results for the most recent year. [MSFT-2026-8-079]\n\nThe income statement or the GAAP-to-non-GAAP reconciliation in the filing would have the number.",
+      "retrieved": [
+        {
+          "chunk_id": "MSFT-2026-8-079",
+          "item": "8",
+          "distance": 0.4394490122795105
+        },
+        {
+          "chunk_id": "MSFT-2026-8-134",
+          "item": "8",
+          "distance": 0.48156100511550903
+        },
+        {
+          "chunk_id": "MSFT-2026-7-017",
+          "item": "7",
+          "distance": 0.5781519412994385
+        },
+        {
+          "chunk_id": "MSFT-2026-7-002",
+          "item": "7",
+          "distance": 0.46290045976638794
+        },
+        {
+          "chunk_id": "MSFT-2026-8-136",
+          "item": "8",
+          "distance": 0.5681670308113098
+        }
+      ],
+      "ticker": "MSFT",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": false,
+      "expected_figure": "133,749",
+      "scores": {
+        "faithfulness": 0.9444444444444444,
+        "llm_context_precision_with_reference": 0.0,
+        "context_recall": 0.0,
+        "answer_relevancy": 0.0
+      }
+    },
+    {
+      "id": "q06",
+      "category": "numeric",
+      "question": "What was Microsoft's diluted earnings per share in its most recent fiscal year?",
+      "ground_truth": "Microsoft's diluted earnings per share were $17.95 for the year ended June 30, 2026, versus $13.64 in the prior year (MSFT-2026-8-001).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "Microsoft's diluted EPS for fiscal year 2026 (ended June 30, 2026) was $17.95, up from $13.64 in fiscal 2025 [MSFT-2026-8-001][MSFT-2026-8-058].\n\nAdjusted diluted EPS, which is non-GAAP and excludes net gains and losses from investments in OpenAI, was $17.28, compared with $14.13 the prior year [MSFT-2026-7-017].",
+      "retrieved": [
+        {
+          "chunk_id": "MSFT-2026-7-017",
+          "item": "7",
+          "distance": 0.4537643790245056
+        },
+        {
+          "chunk_id": "MSFT-2026-8-079",
+          "item": "8",
+          "distance": 0.32874876260757446
+        },
+        {
+          "chunk_id": "MSFT-2026-8-001",
+          "item": "8",
+          "distance": 0.614221453666687
+        },
+        {
+          "chunk_id": "MSFT-2026-8-058",
+          "item": "8",
+          "distance": 0.5521378517150879
+        },
+        {
+          "chunk_id": "MSFT-2026-8-057",
+          "item": "8",
+          "distance": 0.6228131651878357
+        }
+      ],
+      "ticker": "MSFT",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": 17.95,
+      "error": null,
+      "answer_has_expected_number": true,
+      "expected_figure": "17.95",
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.4166666666458333,
+        "context_recall": 1.0,
+        "answer_relevancy": 0.8277913488615035
+      }
+    },
+    {
+      "id": "q07",
+      "category": "numeric",
+      "question": "What was NVIDIA's total revenue in its most recent fiscal year?",
+      "ground_truth": "NVIDIA's revenue for fiscal year 2026 (ended Jan 25, 2026) was $215,938 million, up 65% from $130,497 million a year earlier (NVDA-2026-7-012).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "NVIDIA's total revenue for fiscal year 2026 (ended January 25, 2026) was $215,938 million, about $215.9 billion [NVDA-2026-15-018].\n\nThe filing attributes the growth to data center compute and networking platforms for accelerated computing and AI, with Blackwell architectures making up the majority of Data Center revenue [NVDA-2026-7-002].",
+      "retrieved": [
+        {
+          "chunk_id": "NVDA-2026-15-093",
+          "item": "15",
+          "distance": 0.38430702686309814
+        },
+        {
+          "chunk_id": "NVDA-2026-15-140",
+          "item": "15",
+          "distance": 0.3907170295715332
+        },
+        {
+          "chunk_id": "NVDA-2026-15-018",
+          "item": "15",
+          "distance": 0.4090506136417389
+        },
+        {
+          "chunk_id": "NVDA-2026-7-002",
+          "item": "7",
+          "distance": 0.48433125019073486
+        },
+        {
+          "chunk_id": "NVDA-2026-15-136",
+          "item": "15",
+          "distance": 0.47053420543670654
+        }
+      ],
+      "ticker": "NVDA",
+      "fiscal_year": 2026,
+      "revenue": {
+        "value": 215938.0,
+        "unit": "USD millions",
+        "period": "FY2026"
+      },
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": true,
+      "expected_figure": "215,938",
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.3333333333,
+        "context_recall": 0.0,
+        "answer_relevancy": 0.9090504757950414
+      }
+    },
+    {
+      "id": "q08",
+      "category": "numeric",
+      "question": "What was NVIDIA's net income in its most recent fiscal year?",
+      "ground_truth": "NVIDIA's net income for fiscal year 2026 was $120,067 million, up 65% from $72,880 million a year earlier (NVDA-2026-7-012).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "NVIDIA's net income for fiscal year 2026 (ended Jan 25, 2026) was $120,067 million, up from $72,880 million in fiscal 2025 [NVDA-2026-15-025][NVDA-2026-15-020].",
+      "retrieved": [
+        {
+          "chunk_id": "NVDA-2026-15-136",
+          "item": "15",
+          "distance": 0.4595603346824646
+        },
+        {
+          "chunk_id": "NVDA-2026-15-025",
+          "item": "15",
+          "distance": 0.43039023876190186
+        },
+        {
+          "chunk_id": "NVDA-2026-15-093",
+          "item": "15",
+          "distance": 0.46382227540016174
+        },
+        {
+          "chunk_id": "NVDA-2026-15-020",
+          "item": "15",
+          "distance": 0.4134998321533203
+        },
+        {
+          "chunk_id": "NVDA-2026-15-018",
+          "item": "15",
+          "distance": 0.42841583490371704
+        }
+      ],
+      "ticker": "NVDA",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": true,
+      "expected_figure": "120,067",
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.499999999975,
+        "context_recall": 1.0,
+        "answer_relevancy": 0.9296868939116182
+      }
+    },
+    {
+      "id": "q09",
+      "category": "numeric",
+      "question": "What was NVIDIA's diluted earnings per share in its most recent fiscal year?",
+      "ground_truth": "NVIDIA's net income per diluted share for fiscal year 2026 was $4.90, up 67% from $2.94 a year earlier (NVDA-2026-7-012).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "NVIDIA's diluted earnings per share for fiscal year 2026 (ended Jan 25, 2026) was $4.90, versus $2.94 in fiscal 2025 and $1.19 in fiscal 2024 [NVDA-2026-15-020]. That was computed on 24,514 million diluted weighted average shares [NVDA-2026-15-020].\n\nThe excerpt shows the EPS figures without their column headers. I matched them to fiscal years using the column order of the adjacent statements, which run from most recent to oldest.",
+      "retrieved": [
+        {
+          "chunk_id": "NVDA-2026-15-020",
+          "item": "15",
+          "distance": 0.26306676864624023
+        },
+        {
+          "chunk_id": "NVDA-2026-15-023",
+          "item": "15",
+          "distance": 0.39196160435676575
+        },
+        {
+          "chunk_id": "NVDA-2026-15-018",
+          "item": "15",
+          "distance": 0.3906635046005249
+        },
+        {
+          "chunk_id": "NVDA-2026-15-136",
+          "item": "15",
+          "distance": 0.41471779346466064
+        },
+        {
+          "chunk_id": "NVDA-2026-15-093",
+          "item": "15",
+          "distance": 0.43543440103530884
+        }
+      ],
+      "ticker": "NVDA",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": 4.9,
+      "error": null,
+      "answer_has_expected_number": true,
+      "expected_figure": "4.90",
+      "scores": {
+        "faithfulness": 0.875,
+        "llm_context_precision_with_reference": 0.9999999999,
+        "context_recall": 1.0,
+        "answer_relevancy": 0.9357020235968366
+      }
+    },
+    {
+      "id": "q10",
+      "category": "numeric",
+      "question": "How much revenue did NVIDIA's Data Center market platform generate in its most recent fiscal year?",
+      "ground_truth": "NVIDIA's Data Center revenue was $193,737 million in fiscal year 2026, compared with $115,186 million in fiscal year 2025 (NVDA-2026-15-141).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "The context doesn't give an absolute Data Center revenue figure for fiscal year 2026, so I can't state the dollar amount.\n\nWhat it does say:\n- Data Center revenue for fiscal 2026 was up 68% from a year ago [NVDA-2026-7-012].\n- Total company revenue for fiscal 2026 was $215.9 billion, up 65% [NVDA-2026-7-012].\n- Blackwell architectures represented the majority of Data Center revenue [NVDA-2026-7-002].\n\nThe segment table in [NVDA-2026-7-029] shows $130,141 million on an unlabeled row, but the chunk doesn't identify it. It also isn't the Data Center market platform, which is a different breakdown from segments, so I won't treat it as the answer.\n\nThe revenue-by-specialized-markets table, which likely has the Data Center figure, is cut off in [NVDA-2026-15-140].",
+      "retrieved": [
+        {
+          "chunk_id": "NVDA-2026-15-093",
+          "item": "15",
+          "distance": 0.4776356816291809
+        },
+        {
+          "chunk_id": "NVDA-2026-7-002",
+          "item": "7",
+          "distance": 0.4400765895843506
+        },
+        {
+          "chunk_id": "NVDA-2026-15-140",
+          "item": "15",
+          "distance": 0.42392584681510925
+        },
+        {
+          "chunk_id": "NVDA-2026-7-012",
+          "item": "7",
+          "distance": 0.440346896648407
+        },
+        {
+          "chunk_id": "NVDA-2026-7-029",
+          "item": "7",
+          "distance": 0.3426099419593811
+        }
+      ],
+      "ticker": "NVDA",
+      "fiscal_year": 2026,
+      "revenue": {
+        "value": 215938.0,
+        "unit": "USD millions",
+        "period": "FY2026"
+      },
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": false,
+      "expected_figure": "193,737",
+      "scores": {
+        "faithfulness": 0.9230769230769231,
+        "llm_context_precision_with_reference": 0.0,
+        "context_recall": 0.0,
+        "answer_relevancy": 0.0
+      }
+    },
+    {
+      "id": "q11",
+      "category": "risk",
+      "question": "What supply chain risks does Apple disclose in its 10-K?",
+      "ground_truth": "Apple says a significant majority of its manufacturing is performed by outsourcing partners located primarily in China mainland, India, Japan, South Korea, Taiwan and Vietnam, and that it relies on single-source partners to supply and manufacture many components (AAPL-2025-1A-026). It also notes that outsourcing reduces its direct control over production and distribution, which has at times adversely affected cost, quality or quantity of products, and that trade restrictions such as tariffs can materially adversely affect its supply chain (AAPL-2025-1A-005).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "Based on the excerpts provided, Apple discloses these supply chain related risks:\n\n- Supply shortages and price increases: Apple says it remains subject to significant risks of supply shortages and price increases that can materially adversely affect its business, results of operations, financial condition and stock price. [AAPL-2025-1A-031]\n- Supplier and partner financial health: Uncertainty or a decline in economic conditions can significantly affect suppliers, contract manufacturers, logistics providers, distributors, cellular network carriers and other channel partners. Potential outcomes include financial instability, inability to obtain credit and insolvency. [AAPL-2025-1A-003]\n- Supplier cybersecurity: Third parties can fraudulently induce employees of Apple's suppliers and other third parties into disclosing credentials or sensitive information, which can be used for unauthorized access to their systems and services. [AAPL-2025-1A-056]\n- Manufacturing defects: Products and services may be affected by design and manufacturing defects that could materially adversely affect the business and harm Apple's reputation. [AAPL-2025-1A-031]\n\nThe provided context is only a subset of Item 1A, so it may not cover everything Apple discloses on this topic, such as concentration of manufacturing or geographic exposure.",
+      "retrieved": [
+        {
+          "chunk_id": "AAPL-2025-1A-031",
+          "item": "1A",
+          "distance": 0.40130478143692017
+        },
+        {
+          "chunk_id": "AAPL-2025-1A-021",
+          "item": "1A",
+          "distance": 0.54401034116745
+        },
+        {
+          "chunk_id": "AAPL-2025-1A-056",
+          "item": "1A",
+          "distance": 0.5543049573898315
+        },
+        {
+          "chunk_id": "AAPL-2025-1A-003",
+          "item": "1A",
+          "distance": 0.5007330179214478
+        },
+        {
+          "chunk_id": "AAPL-2025-1A-055",
+          "item": "1A",
+          "distance": 0.5010681748390198
+        }
+      ],
+      "ticker": "AAPL",
+      "fiscal_year": 2025,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 0.8823529411764706,
+        "llm_context_precision_with_reference": 0.0,
+        "context_recall": 0.0,
+        "answer_relevancy": 0.9405383348929237
+      }
+    },
+    {
+      "id": "q12",
+      "category": "risk",
+      "question": "What legal and regulatory risks around the App Store does Apple describe?",
+      "ground_truth": "Apple describes a U.S. court order preventing it from imposing any commission or fee on certain purchases consumers make through alternative purchasing mechanisms on the U.S. App Store storefront (AAPL-2025-1A-072). In the EU it has changed iOS, iPadOS and the App Store to comply with the Digital Markets Act, which provides for significant fines and penalties for noncompliance (AAPL-2025-1A-074), and it is the subject of investigations in Europe and other jurisdictions relating to App Store terms and conditions (AAPL-2025-1A-076).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "Apple describes these App Store-related legal and regulatory risks:\n\n- **General scrutiny:** The technology industry, including Apple in some instances, faces intense media, political and regulatory scrutiny. This exposes Apple to more regulation, government investigations, legal actions and penalties. [AAPL-2025-1A-072]\n- **U.S. court order on fees:** Apple has changed how developers communicate with consumers in apps on the U.S. App Store storefront about alternative purchasing mechanisms. It is currently subject to a court order preventing it from imposing any commission or fee on certain purchases consumers make. [AAPL-2025-1A-072]\n- **International investigations:** Apple is the subject of investigations in Europe and other jurisdictions relating to App Store terms and conditions. [AAPL-2025-1A-076]\n- **Related antitrust litigation:** Apple faces U.S. civil antitrust lawsuits alleging monopolization or attempted monopolization in the \"performance smartphones\" and \"smartphones\" markets. These are not described as App Store-specific. [AAPL-2025-1A-076]\n- **Potential consequences:** If investigations or litigation are resolved against Apple, it could face significant fines and may have to make further changes to its business practices. This could materially adversely affect its business, results of operations, financial condition and stock price. [AAPL-2025-1A-076]\n\nFor context, Apple accounts for third-party App Store application sales on a net basis, recognizing only its retained commission in Services net sales. [AAPL-2025-8-021] The provided context does not quantify the financial impact of these App Store risks.",
+      "retrieved": [
+        {
+          "chunk_id": "AAPL-2025-1A-072",
+          "item": "1A",
+          "distance": 0.45619651675224304
+        },
+        {
+          "chunk_id": "AAPL-2025-8-021",
+          "item": "8",
+          "distance": 0.5546256303787231
+        },
+        {
+          "chunk_id": "AAPL-2025-1A-021",
+          "item": "1A",
+          "distance": 0.6086359024047852
+        },
+        {
+          "chunk_id": "AAPL-2025-1A-076",
+          "item": "1A",
+          "distance": 0.5471850633621216
+        },
+        {
+          "chunk_id": "AAPL-2025-1A-055",
+          "item": "1A",
+          "distance": 0.555107831954956
+        }
+      ],
+      "ticker": "AAPL",
+      "fiscal_year": 2025,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.7499999999625,
+        "context_recall": 0.6666666666666666,
+        "answer_relevancy": 0.9947209516645189
+      }
+    },
+    {
+      "id": "q13",
+      "category": "risk",
+      "question": "How does Apple say foreign currency fluctuations could affect its results?",
+      "ground_truth": "Apple says its primary foreign exchange exposure relates to non-U.S. dollar-denominated sales, cost of sales and operating expenses, and that gross margins on products in foreign countries and on products with foreign-sourced components have been and could be materially adversely affected by exchange rate fluctuations (AAPL-2025-1A-088). A weakening of foreign currencies relative to the U.S. dollar adversely affects the U.S. dollar value of foreign currency-denominated sales and earnings, and its hedging may not be effective to offset more than a portion of the adverse effects (AAPL-2025-1A-089, AAPL-2025-1A-090).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "Apple describes effects in both directions, plus a limit on its hedging.\n\nWeakening foreign currencies: A weaker foreign currency relative to the U.S. dollar reduces the dollar value of Apple's foreign currency-denominated sales and earnings. It generally leads Apple to raise international pricing, which could reduce demand. If Apple chooses not to raise prices for competitive or other reasons, the dollar value of gross margins on those sales is adversely affected [AAPL-2025-1A-089].\n\nStrengthening foreign currencies: This is generally beneficial to foreign currency-denominated sales and earnings. However, Apple could reduce international pricing or incur losses on its foreign currency derivatives, which limits the benefit. A stronger foreign currency may also raise the cost of product components denominated in those currencies, hurting gross margins [AAPL-2025-1A-090].\n\nHedging: Apple uses foreign currency forward and option contracts to hedge certain exposures. It says these hedges may not offset any, or more than a portion, of the adverse effects of unfavorable exchange rate movements during the limited time they are in place [AAPL-2025-1A-090].\n\nQuantified exposure: Using a value-at-risk model, Apple estimates with 95% confidence a maximum one-day loss in fair value of its foreign currency derivative positions of $590 million as of September 27, 2025, versus $538 million as of September 28, 2024. Changes in the underlying exposures, which were excluded from this assessment, generally offset changes in the derivatives' fair values [AAPL-2025-7A-003].\n\nMore broadly, Apple says macroeconomic conditions, including currency fluctuations, have affected and could materially affect its results of operations and financial condition [AAPL-2025-7-002].",
+      "retrieved": [
+        {
+          "chunk_id": "AAPL-2025-7-002",
+          "item": "7",
+          "distance": 0.5291825532913208
+        },
+        {
+          "chunk_id": "AAPL-2025-7A-003",
+          "item": "7A",
+          "distance": 0.4025889039039612
+        },
+        {
+          "chunk_id": "AAPL-2025-1A-090",
+          "item": "1A",
+          "distance": 0.42566952109336853
+        },
+        {
+          "chunk_id": "AAPL-2025-1A-089",
+          "item": "1A",
+          "distance": 0.35758334398269653
+        },
+        {
+          "chunk_id": "AAPL-2025-1A-031",
+          "item": "1A",
+          "distance": 0.6112117767333984
+        }
+      ],
+      "ticker": "AAPL",
+      "fiscal_year": 2025,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.4166666666458333,
+        "context_recall": 0.5,
+        "answer_relevancy": 0.9036984589456462
+      }
+    },
+    {
+      "id": "q14",
+      "category": "risk",
+      "question": "What risks related to artificial intelligence does Microsoft disclose?",
+      "ground_truth": "Microsoft says it is making significant capital and operational investments in AI models and cloud services, including datacenters, in advance of fully developed revenue streams, so the associated revenue may not be realized in expected timeframes or at expected levels (MSFT-2026-1A-011). It states its AI models and training methodologies may be flawed, datasets may be biased or inaccurate, and AI-generated content may be offensive, illegal or inaccurate, which could give rise to reputational, competitive or legal harm (MSFT-2026-1A-069). It also cites evolving AI regulation such as the EU's AI Act that could increase costs or restrict opportunity (MSFT-2026-1A-093).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "Microsoft discloses these AI-related risks:\n\n- Flawed development and deployment: AI models and training methods may be flawed, datasets may be overbroad, insufficient, or biased, and AI-generated content may be offensive, illegal, inaccurate, or harmful. Inadequate practices by Microsoft or others could cause incidents that hurt acceptance of AI, harm individuals or society, or make products not work as intended. Microsoft says this could lead to reputational, competitive, or legal harm. [MSFT-2026-1A-069]\n- Regulation: AI-related rulemakings could adversely affect Microsoft's business, strategy, and operations. [MSFT-2026-1A-097]\n- Child and adolescent safety: AI systems may present distinct risks for children and adolescents. Non-compliance with related requirements could bring enhanced regulatory oversight, civil or criminal liability, fines, and reputational damage. [MSFT-2026-1A-064]\n- Data scraping: Growing use of agentic AI, along with changes in law or its interpretation, may limit Microsoft's ability to stop third parties from scraping content from products like LinkedIn. [MSFT-2026-1A-060]\n\nThe context doesn't include price data, and it covers only these excerpts of the filing, so other AI risk disclosures may exist.",
+      "retrieved": [
+        {
+          "chunk_id": "MSFT-2026-7-001",
+          "item": "7",
+          "distance": 0.6011372804641724
+        },
+        {
+          "chunk_id": "MSFT-2026-1A-097",
+          "item": "1A",
+          "distance": 0.42164695262908936
+        },
+        {
+          "chunk_id": "MSFT-2026-1A-064",
+          "item": "1A",
+          "distance": 0.4742077589035034
+        },
+        {
+          "chunk_id": "MSFT-2026-1A-069",
+          "item": "1A",
+          "distance": 0.4079091548919678
+        },
+        {
+          "chunk_id": "MSFT-2026-1A-060",
+          "item": "1A",
+          "distance": 0.5327216386795044
+        }
+      ],
+      "ticker": "MSFT",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.249999999975,
+        "context_recall": 0.3333333333333333,
+        "answer_relevancy": 0.9426608250038574
+      }
+    },
+    {
+      "id": "q15",
+      "category": "risk",
+      "question": "What cybersecurity risks does Microsoft describe in its 10-K?",
+      "ground_truth": "Microsoft says security threats are a significant challenge, that threats to or attacks on its own infrastructure, such as a nation-state attack described in a prior risk factor, have also affected its customers, and that adversaries focus on the most popular operating systems, programs and services, including many of Microsoft's (MSFT-2026-1A-045). It adds that adversaries can exploit zero-day vulnerabilities and that product vulnerabilities can persist after patches are issued if customers have not installed updates, including where attackers may use artificial intelligence to reconstruct and exploit them (MSFT-2026-1A-046).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "Based on the excerpts provided, Microsoft describes these cybersecurity risks:\n\n- **Business impact:** Cyberattacks and security vulnerabilities could reduce revenue, increase costs, lead to liability claims, or harm its reputation and competitive position [MSFT-2026-1A-031].\n- **Threat actors and methods:** Nation-states, state-sponsored groups, cybercriminals, and other hackers continuously attack. Microsoft says it has experienced incidents where actors gained unauthorized access to its systems and data, and to customer, partner, and supplier systems [MSFT-2026-1A-032]. Methods include malware, exploiting vulnerabilities in its own or third-party hardware and software, and social engineering and AI-assisted techniques [MSFT-2026-1A-032].\n- **Account and organizational security:** Inadequate security practices, including those of acquired companies and third parties, have resulted and may result in unauthorized access. Examples include passwords not rotated and employee access not updated or removed on time [MSFT-2026-1A-041].\n- **Insiders and third parties:** Employees or third parties may intentionally compromise security or reveal confidential information. Laws in some jurisdictions may compel such parties to act against Microsoft's interests and limit its recourse [MSFT-2026-1A-041]. Third parties also face AI-enhanced cybersecurity risk [MSFT-2026-1A-041].\n- **Supply chain:** Malicious actors may inject malware through software updates or compromised supplier or open-source code [MSFT-2026-1A-041].\n- **Customer variability:** Customers differ widely in technical sophistication and may lack resources to adopt strong practices. Microsoft must account for this when setting security defaults, and some customers may be unable to review or reset them [MSFT-2026-1A-049]. The filing also notes a risk that security measures will be insufficient against newly emerging threats [MSFT-2026-1A-049].\n- **Regulation:** Evolving cybersecurity laws across jurisdictions may raise costs, create compliance uncertainty, and expose Microsoft to enforcement actions [MSFT-2026-1A-099].\n\nThese are excerpts, so the full Item 1A may cover more.",
+      "retrieved": [
+        {
+          "chunk_id": "MSFT-2026-1A-031",
+          "item": "1A",
+          "distance": 0.5176434516906738
+        },
+        {
+          "chunk_id": "MSFT-2026-1A-041",
+          "item": "1A",
+          "distance": 0.6884961724281311
+        },
+        {
+          "chunk_id": "MSFT-2026-1A-032",
+          "item": "1A",
+          "distance": 0.6582252979278564
+        },
+        {
+          "chunk_id": "MSFT-2026-1A-049",
+          "item": "1A",
+          "distance": 0.597435474395752
+        },
+        {
+          "chunk_id": "MSFT-2026-1A-099",
+          "item": "1A",
+          "distance": 0.7150063514709473
+        }
+      ],
+      "ticker": "MSFT",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 0.9705882352941176,
+        "llm_context_precision_with_reference": 0.0,
+        "context_recall": 0.0,
+        "answer_relevancy": 0.9152568340650382
+      }
+    },
+    {
+      "id": "q16",
+      "category": "risk",
+      "question": "What competitive risks does Microsoft identify?",
+      "ground_truth": "Microsoft says its competitors range from diversified global companies to small specialized firms, that barriers to entry in many of its businesses are low, and that if it does not continue to innovate it may not remain competitive (MSFT-2026-1A-001). It notes competition from vertically-integrated competitors and from competing platforms for new types of devices such as smartphones and tablets that could make it harder to attract application developers to its PC operating system platforms (MSFT-2026-1A-003, MSFT-2026-1A-004), and that AI is a highly competitive, rapidly evolving market where it competes with hyperscalers, open-source offerings and frontier model providers (MSFT-2026-1A-007).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "Microsoft points to these competitive risks in the provided context:\n\n- **Office:** It competes with software and global application vendors, web-based and mobile application companies, AI-first application companies, and local application developers [MSFT-2026-1-021].\n- **Windows:** It faces competition from various software products and from alternative platforms and devices [MSFT-2026-1-042]. Microsoft says it competes by offering choice, value, flexibility, security, and compatibility [MSFT-2026-1-042].\n- **Security:** Microsoft Defender for Endpoint competes with endpoint security solution providers [MSFT-2026-1-021]. Cyberattacks and security vulnerabilities could harm its competitive position, along with revenue, costs, liability, and reputation [MSFT-2026-1A-031].\n- **AI:** The growing scale and adoption of AI could give rise to reputational, competitive, or legal harm. Flawed models, biased datasets, or harmful AI-generated content could impair acceptance of AI solutions [MSFT-2026-1A-069].\n- **Industry dynamics:** Microsoft describes its industry as dynamic and highly competitive, with frequent changes in technologies and business models [MSFT-2026-7-003].\n\nThe context doesn't include a fuller list of competitors or a more detailed competitive risk factor section, so this may not be exhaustive.",
+      "retrieved": [
+        {
+          "chunk_id": "MSFT-2026-1-021",
+          "item": "1",
+          "distance": 0.5016344785690308
+        },
+        {
+          "chunk_id": "MSFT-2026-1A-069",
+          "item": "1A",
+          "distance": 0.5616960525512695
+        },
+        {
+          "chunk_id": "MSFT-2026-1-042",
+          "item": "1",
+          "distance": 0.5463399887084961
+        },
+        {
+          "chunk_id": "MSFT-2026-1A-031",
+          "item": "1A",
+          "distance": 0.6163007020950317
+        },
+        {
+          "chunk_id": "MSFT-2026-7-003",
+          "item": "7",
+          "distance": 0.5731650590896606
+        }
+      ],
+      "ticker": "MSFT",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 0.9444444444444444,
+        "llm_context_precision_with_reference": 0.0,
+        "context_recall": 0.0,
+        "answer_relevancy": 0.9665183129990997
+      }
+    },
+    {
+      "id": "q17",
+      "category": "risk",
+      "question": "How do export controls affect NVIDIA's business according to its 10-K?",
+      "ground_truth": "NVIDIA says the United States has imposed unilateral worldwide controls restricting GPUs and associated products, that further controls are likely and may be very broad, could prohibit exports to any or all customers in one or more markets, and could negatively and materially impact its business, revenue and financial results (NVDA-2026-1A-104). It also says export controls have and could disrupt its supply chain and distribution channels, and that the possibility of additional controls has reduced demand and may benefit competitors offering alternatives less likely to be restricted (NVDA-2026-1A-107), and that reduced demand due to export controls could lead to excess inventory or related supply charges (NVDA-2026-1A-108).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "According to NVIDIA's FY2026 10-K risk factors, export controls affect the business in several ways:\n\n- **Competitive disadvantage:** Controls have and are likely to have a disproportionate impact on NVIDIA, and may disadvantage it against competitors selling chips outside their scope [NVDA-2026-1A-126].\n- **Design-out and customer steering:** Customers outside China and other affected regions may design out certain U.S. semiconductors to reduce compliance burden, and overseas governments may ask customers to buy from competitors instead [NVDA-2026-1A-126].\n- **Downstream restrictions:** Users of NVIDIA products may face limits on use, resale, repair, or transfer. Controls could also raise the cost of, or limit, services such as NVIDIA AI cloud services, including for CSPs and their customers outside China [NVDA-2026-1A-106].\n- **Supply chain disruption:** Controls have disrupted and could disrupt supply and distribution, affecting markets outside China and non-data center products [NVDA-2026-1A-107]. A substantial portion of products is warehoused in and distributed from Hong Kong [NVDA-2026-1A-125].\n- **Demand effects:** The possibility of further controls has reduced and may reduce demand, benefiting competitors with alternatives less likely to be restricted [NVDA-2026-1A-107]. Demand may also fall in Europe, Latin America, and Southeast Asia [NVDA-2026-1A-127].\n- **Networking and gaming:** Limits on data center GPU sales may reduce demand for networking products used with those GPUs, and the government may also restrict networking products like high-speed interconnects [NVDA-2026-1A-125]. As gaming GPU performance rises, controls may affect competitiveness in controlled markets [NVDA-2026-1A-125].\n- **Inventory risk:** New products may become subject to new controls before launch, leading to excess inventory and purchase obligations, as happened with the H20 [NVDA-2026-1A-127].\n- **Compliance burden:** Repeated rule changes are likely to burden NVIDIA and its customers [NVDA-2026-1A-107].\n- **Foreign competitors:** Controls may increase investment in foreign competitors that are less likely to be restricted by U.S. rules [NVDA-2026-1A-127].",
+      "retrieved": [
+        {
+          "chunk_id": "NVDA-2026-1A-126",
+          "item": "1A",
+          "distance": 0.2631789445877075
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-106",
+          "item": "1A",
+          "distance": 0.2721189558506012
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-125",
+          "item": "1A",
+          "distance": 0.3333064913749695
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-107",
+          "item": "1A",
+          "distance": 0.4856046736240387
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-127",
+          "item": "1A",
+          "distance": 0.493998646736145
+        }
+      ],
+      "ticker": "NVDA",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.249999999975,
+        "context_recall": 0.3333333333333333,
+        "answer_relevancy": 0.9344633315021932
+      }
+    },
+    {
+      "id": "q18",
+      "category": "risk",
+      "question": "What manufacturing and supply dependency risks does NVIDIA disclose?",
+      "ground_truth": "NVIDIA says it depends on foundries to manufacture its semiconductor wafers and on independent subcontractors to assemble, test and package its products, which reduces its control over product quantity and quality, manufacturing yields and delivery schedules (NVDA-2026-1A-031). The listed risks include lack of guaranteed supply of components and capacity, decommitment by suppliers, and limited number and geographic concentration of suppliers, foundries and memory manufacturers (NVDA-2026-1A-032), as well as non-cancellable orders or prepayment requirements and low manufacturing yields (NVDA-2026-1A-033, NVDA-2026-1A-034).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "NVIDIA discloses the following manufacturing and supply dependency risks.\n\n- It relies on foundries to manufacture its semiconductor wafers using their fabrication equipment and techniques. It does not assemble, test, or package its products, and instead contracts with independent subcontractors who also help procure components for its systems, boards, and products [NVDA-2026-1A-031].\n- This dependency reduces NVIDIA's control over product quantity and quality, manufacturing yields, and delivery schedules, and could harm the business [NVDA-2026-1A-031].\n- These risks have adversely affected or could adversely affect its ability to meet customer demand and scale its supply chain. They could also hurt longer-term demand, business operations, gross margin, revenue, and financial results [NVDA-2026-1A-031].\n- Specific risks named include lack of guaranteed supply of components and capacity, and decommitment by suppliers [NVDA-2026-1A-031].\n- A security incident at NVIDIA or a third party it relies on could cause material disruptions to its supply chain and its ability to produce, sell, and distribute products [NVDA-2026-1A-056].\n\nThe risk list in the provided excerpt is cut off after \"decommitment by our suppliers,\" so any further items are not in the context.",
+      "retrieved": [
+        {
+          "chunk_id": "NVDA-2026-1A-056",
+          "item": "1A",
+          "distance": 0.3991665244102478
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-031",
+          "item": "1A",
+          "distance": 0.50124591588974
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-055",
+          "item": "1A",
+          "distance": 0.5425260663032532
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-126",
+          "item": "1A",
+          "distance": 0.43876415491104126
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-097",
+          "item": "1A",
+          "distance": 0.44967934489250183
+        }
+      ],
+      "ticker": "NVDA",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.49999999995,
+        "context_recall": 0.5,
+        "answer_relevancy": 0.9939994093198949
+      }
+    },
+    {
+      "id": "q19",
+      "category": "risk",
+      "question": "What does NVIDIA say about customer concentration risk?",
+      "ground_truth": "NVIDIA says it receives a significant amount of its revenue from a limited number of partners and distributors and that its revenue could be adversely affected if it loses or is prevented from selling to any of these customers (NVDA-2026-1A-078). For fiscal year 2026, sales to one direct customer represented 22% of total revenue and sales to another direct customer represented 14% of total revenue, and because most sales are made on a purchase order basis, customers can generally cancel, change or delay purchase commitments with little notice and without penalty (NVDA-2026-1A-079, NVDA-2026-1A-080).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "NVIDIA says its revenue is concentrated among a limited number of direct and indirect customers, and that this trend may continue [NVDA-2026-7-031].\n\n- Direct customers buy from NVIDIA (AIBs, distributors, ODMs, OEMs, CSPs, AI model makers, system integrators). Indirect customers buy through them (CSPs, Neocloud builders, AI model makers, enterprises, public sector) [NVDA-2026-7-031].\n- In fiscal 2026, one direct customer was 22% of total revenue and another was 14%, primarily in the Compute & Networking segment [NVDA-2026-7-031].\n- In fiscal 2025, one direct customer was 12% of revenue and two others were each 11. The excerpt cuts off after that figure [NVDA-2026-15-139].\n- Receivables are also concentrated. Three direct customers accounted for 25%, 18% and 13% of accounts receivable as of January 25, 2026. Two accounted for 17% and 16% as of January 26, 2025 [NVDA-2026-15-087].\n\nThe provided context doesn't include NVIDIA's risk factor text on what would happen if a major customer reduced purchases. The only related Item 1A passage covers export controls, which it says could lead customers to \"design-out\" certain U.S. semiconductors or lead overseas governments to push customers toward competitors [NVDA-2026-1A-126].",
+      "retrieved": [
+        {
+          "chunk_id": "NVDA-2026-7-031",
+          "item": "7",
+          "distance": 0.42225897312164307
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-056",
+          "item": "1A",
+          "distance": 0.4628655016422272
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-126",
+          "item": "1A",
+          "distance": 0.4956619143486023
+        },
+        {
+          "chunk_id": "NVDA-2026-15-139",
+          "item": "15",
+          "distance": 0.5337870717048645
+        },
+        {
+          "chunk_id": "NVDA-2026-15-087",
+          "item": "15",
+          "distance": 0.5172595977783203
+        }
+      ],
+      "ticker": "NVDA",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.7499999999625,
+        "context_recall": 0.0,
+        "answer_relevancy": 0.8826340685948922
+      }
+    },
+    {
+      "id": "q20",
+      "category": "risk",
+      "question": "What did NVIDIA's MD&A give as the main drivers of revenue change in its most recent fiscal year?",
+      "ground_truth": "NVIDIA's MD&A says revenue growth in fiscal year 2026 was driven by data center compute and networking platforms for accelerated computing and AI solutions, with Blackwell architectures representing the majority of Data Center revenue (NVDA-2026-7-002). Revenue grew 65% to $215,938 million, and Data Center computing revenue grew 59% on Blackwell demand while Data Center networking revenue grew 142% on the ramp of NVLink compute fabric for GB200 and GB300 systems and growth of Ethernet and InfiniBand (NVDA-2026-7-012, NVDA-2026-7-029).",
+      "expected_intent": "filing",
+      "predicted_intent": "filing",
+      "answer": "According to NVIDIA's MD&A, revenue growth in fiscal year 2026 was driven by data center compute and networking platforms for accelerated computing and AI solutions. Blackwell architectures represented the majority of Data Center revenue [NVDA-2026-7-002].\n\nThe provided context doesn't include any further breakdown of the drivers, such as volume versus pricing or segment-level changes.",
+      "retrieved": [
+        {
+          "chunk_id": "NVDA-2026-7-002",
+          "item": "7",
+          "distance": 0.5155160427093506
+        },
+        {
+          "chunk_id": "NVDA-2026-15-140",
+          "item": "15",
+          "distance": 0.46056848764419556
+        },
+        {
+          "chunk_id": "NVDA-2026-15-093",
+          "item": "15",
+          "distance": 0.4377043843269348
+        },
+        {
+          "chunk_id": "NVDA-2026-15-136",
+          "item": "15",
+          "distance": 0.5183309316635132
+        },
+        {
+          "chunk_id": "NVDA-2026-15-018",
+          "item": "15",
+          "distance": 0.5249555706977844
+        }
+      ],
+      "ticker": "NVDA",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.9999999999,
+        "context_recall": 0.5,
+        "answer_relevancy": 0.8979024862583161
+      }
+    },
+    {
+      "id": "q21",
+      "category": "combined",
+      "question": "What is Apple's current stock price, and what were its total net sales last fiscal year?",
+      "ground_truth": "Apple's total net sales were $416,161 million in fiscal 2025 (AAPL-2025-7-005). Stock price/market data are provided by the price tool.",
+      "expected_intent": "both",
+      "predicted_intent": "both",
+      "answer": "Apple's stock price is $343.83 as of 2026-10-29 07:29 UTC (the price data isn't marked stale).\n\nThe most recent fiscal year in the context is FY2025, which ended September 27, 2025 [AAPL-2025-8-024]. Total net sales were $416,161 million, about $416.2 billion, up 6% from $391,035 million in 2024 [AAPL-2025-7-005].\n\nThe context has no FY2026 figures, so I can't say what net sales were for any fiscal year after FY2025.",
+      "retrieved": [
+        {
+          "chunk_id": "AAPL-2025-8-024",
+          "item": "8",
+          "distance": 0.5519999265670776
+        },
+        {
+          "chunk_id": "AAPL-2025-8-023",
+          "item": "8",
+          "distance": 0.41316795349121094
+        },
+        {
+          "chunk_id": "AAPL-2025-7-006",
+          "item": "7",
+          "distance": 0.5618895292282104
+        },
+        {
+          "chunk_id": "AAPL-2025-7-007",
+          "item": "7",
+          "distance": 0.46177414059638977
+        },
+        {
+          "chunk_id": "AAPL-2025-7-005",
+          "item": "7",
+          "distance": 0.5413742065429688
+        }
+      ],
+      "ticker": "AAPL",
+      "fiscal_year": 2025,
+      "revenue": {
+        "value": 416161.0,
+        "unit": "USD millions",
+        "period": "FY2025"
+      },
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.5888888888692593,
+        "context_recall": 0.5,
+        "answer_relevancy": 0.9920519307890329
+      }
+    },
+    {
+      "id": "q22",
+      "category": "combined",
+      "question": "What is Microsoft's current P/E ratio, and what is its biggest competitive risk?",
+      "ground_truth": "Microsoft's 10-K says barriers to entry in many of its businesses are low and that if it does not continue to innovate it may not remain competitive (MSFT-2026-1A-001), and that AI is a highly competitive and rapidly evolving market where it competes with hyperscalers, open-source offerings and frontier model providers (MSFT-2026-1A-007). The filing does not rank a single biggest risk. Stock price/market data are provided by the price tool.",
+      "expected_intent": "both",
+      "predicted_intent": "both",
+      "answer": "P/E ratio: 29.58, with MSFT at 531.01 as of 2026-10-29 07:30 UTC. The price block isn't marked stale.\n\nBiggest competitive risk: the context doesn't rank competitive risks, so I can't say which is largest. It only describes where Microsoft faces competition:\n\n- Office competes with software and global application vendors, web-based and mobile application companies, AI-first application companies, and local application developers [MSFT-2026-1-021].\n- Windows faces competition from various software products and from alternative platforms and devices [MSFT-2026-1-021].\n- Microsoft Defender for Endpoint competes with endpoint security solution providers [MSFT-2026-1-021].\n\nThe risk factor excerpt provided covers geopolitical and regulatory issues, such as AI-related rulemakings, sanctions, and trade restrictions tied to conflicts in Ukraine and the Middle East [MSFT-2026-1A-097]. It doesn't address competition.",
+      "retrieved": [
+        {
+          "chunk_id": "MSFT-2026-1-068",
+          "item": "1",
+          "distance": 0.6726881265640259
+        },
+        {
+          "chunk_id": "MSFT-2026-15-013",
+          "item": "15",
+          "distance": 0.6836835741996765
+        },
+        {
+          "chunk_id": "MSFT-2026-1-021",
+          "item": "1",
+          "distance": 0.6386203765869141
+        },
+        {
+          "chunk_id": "MSFT-2026-15-014",
+          "item": "15",
+          "distance": 0.6567027568817139
+        },
+        {
+          "chunk_id": "MSFT-2026-1A-097",
+          "item": "1A",
+          "distance": 0.6786584854125977
+        }
+      ],
+      "ticker": "MSFT",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 0.9166666666666666,
+        "llm_context_precision_with_reference": 0.0,
+        "context_recall": 0.3333333333333333,
+        "answer_relevancy": 0.0
+      }
+    },
+    {
+      "id": "q23",
+      "category": "combined",
+      "question": "What is NVIDIA's market capitalization now, and what was its total revenue last fiscal year?",
+      "ground_truth": "NVIDIA's revenue for fiscal year 2026 was $215,938 million, up 65% from $130,497 million a year earlier (NVDA-2026-7-012). Stock price/market data are provided by the price tool.",
+      "expected_intent": "both",
+      "predicted_intent": "both",
+      "answer": "NVIDIA's market capitalization is about $5.2 trillion (5,200,780,722,176), with the stock at $215.38 as of 2026-10-29 07:30 UTC. The price data is not marked stale.\n\nTotal revenue for the most recent completed fiscal year (fiscal 2026, ended January 25, 2026) was $215,938 million, or about $215.9 billion [NVDA-2026-15-018].\n\nThe context doesn't include the prior-year revenue figures from that table, so I can't give a year-over-year comparison.",
+      "retrieved": [
+        {
+          "chunk_id": "NVDA-2026-15-093",
+          "item": "15",
+          "distance": 0.38430702686309814
+        },
+        {
+          "chunk_id": "NVDA-2026-15-140",
+          "item": "15",
+          "distance": 0.3907170295715332
+        },
+        {
+          "chunk_id": "NVDA-2026-15-018",
+          "item": "15",
+          "distance": 0.4090506136417389
+        },
+        {
+          "chunk_id": "NVDA-2026-7-002",
+          "item": "7",
+          "distance": 0.48433125019073486
+        },
+        {
+          "chunk_id": "NVDA-2026-15-136",
+          "item": "15",
+          "distance": 0.47053420543670654
+        }
+      ],
+      "ticker": "NVDA",
+      "fiscal_year": 2026,
+      "revenue": {
+        "value": 215938.0,
+        "unit": "USD millions",
+        "period": "FY2026"
+      },
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.3333333333,
+        "context_recall": 0.0,
+        "answer_relevancy": 0.9719296169067716
+      }
+    },
+    {
+      "id": "q24",
+      "category": "combined",
+      "question": "Compare Apple's and Microsoft's latest annual revenue and tell me both current stock prices.",
+      "ground_truth": "Apple's total net sales were $416,161 million in fiscal 2025 (AAPL-2025-7-005), while Microsoft's total revenue was $331,839 million for the year ended June 30, 2026 (MSFT-2026-8-000). Stock price/market data are provided by the price tool.",
+      "expected_intent": "both",
+      "predicted_intent": "both",
+      "answer": "Annual revenue (latest fiscal year in the context for each company):\n- Apple, FY2025 (ended September 27, 2025): total net sales of $416,161 million, up from $391,035 million in FY2024 [AAPL-2025-8-023].\n- Microsoft, FY2026: total revenue of $331,839 million, up from $281,724 million in FY2025 [MSFT-2026-7-020]. That is an increase of $50.1 billion, or 18% [MSFT-2026-7-017].\n\nOn these figures, Apple's latest reported annual revenue is about $84 billion higher than Microsoft's. The fiscal years differ, and the context has no Apple FY2026 data, so this isn't a same-period comparison.\n\nCurrent stock prices (as of 2026-10-29 07:30 UTC, not marked stale):\n- AAPL: $343.83\n- MSFT: $531.01",
+      "retrieved": [
+        {
+          "chunk_id": "AAPL-2025-8-024",
+          "item": "8",
+          "distance": 0.576145350933075
+        },
+        {
+          "chunk_id": "AAPL-2025-7-001",
+          "item": "7",
+          "distance": 0.6301748156547546
+        },
+        {
+          "chunk_id": "AAPL-2025-8-006",
+          "item": "8",
+          "distance": 0.6492735147476196
+        },
+        {
+          "chunk_id": "AAPL-2025-8-023",
+          "item": "8",
+          "distance": 0.5295079350471497
+        },
+        {
+          "chunk_id": "AAPL-2025-8-004",
+          "item": "8",
+          "distance": 0.6357001662254333
+        },
+        {
+          "chunk_id": "MSFT-2026-7-002",
+          "item": "7",
+          "distance": 0.5337400436401367
+        },
+        {
+          "chunk_id": "MSFT-2026-8-134",
+          "item": "8",
+          "distance": 0.5445326566696167
+        },
+        {
+          "chunk_id": "MSFT-2026-7-017",
+          "item": "7",
+          "distance": 0.6659548282623291
+        },
+        {
+          "chunk_id": "MSFT-2026-7-020",
+          "item": "7",
+          "distance": 0.473730206489563
+        },
+        {
+          "chunk_id": "MSFT-2026-7-021",
+          "item": "7",
+          "distance": 0.6131405234336853
+        }
+      ],
+      "ticker": null,
+      "fiscal_year": null,
+      "revenue": {
+        "value": 416161.0,
+        "unit": "USD millions",
+        "period": "FY2025"
+      },
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.23611111109930555,
+        "context_recall": 0.5,
+        "answer_relevancy": 0.9458419529408962
+      }
+    },
+    {
+      "id": "q25",
+      "category": "combined",
+      "question": "What is NVIDIA's current stock price and how do export controls threaten it?",
+      "ground_truth": "NVIDIA says the United States has imposed unilateral worldwide controls restricting GPUs and that additional controls could prohibit exports to any or all customers in one or more markets and negatively and materially impact its business, revenue and financial results (NVDA-2026-1A-104). Export controls have and could disrupt its supply chain and distribution channels, and the possibility of additional controls has negatively impacted demand for its products (NVDA-2026-1A-107). Stock price/market data are provided by the price tool.",
+      "expected_intent": "both",
+      "predicted_intent": "both",
+      "answer": "Price (as of 2026-10-29 07:30 UTC, not marked stale): NVDA is at $215.38, with a market cap of about $5.20 trillion and a P/E of 27.2.\n\nHow export controls threaten the business, per the filing:\n\n- **Competitive disadvantage:** Controls have a disproportionate impact on NVIDIA and may favor competitors whose chips fall outside their scope. Customers may \"design-out\" U.S. semiconductors, and foreign governments may push customers toward competitors [NVDA-2026-1A-126].\n- **Demand beyond China:** Controls have hurt and may hurt demand in Europe, Latin America, and Southeast Asia. Foreign competitors, less likely to be restricted, may also attract more investment [NVDA-2026-1A-127].\n- **Inventory risk:** New controls can arrive after a product is ready for market, leaving excess inventory and purchase obligations, as happened with the H20 [NVDA-2026-1A-127].\n- **Downstream restrictions:** Customers may face limits on using, reselling, repairing, or transferring NVIDIA products. Controls could also raise costs or limit NVIDIA AI cloud services and the services CSPs offer their customers, even outside China [NVDA-2026-1A-106].\n- **Supply chain disruption:** Controls have disrupted and could disrupt supply and distribution, including for markets outside China and for non-data center products. Repeated rule changes add compliance burdens [NVDA-2026-1A-107].\n- **Hong Kong concentration:** A substantial portion of products is warehoused in and distributed from Hong Kong [NVDA-2026-1A-125].\n- **Adjacent products:** Controls on data center GPUs may reduce demand for networking products, and the USG may restrict networking products directly. As gaming GPU performance rises, controls may affect those sales too [NVDA-2026-1A-125].",
+      "retrieved": [
+        {
+          "chunk_id": "NVDA-2026-1A-126",
+          "item": "1A",
+          "distance": 0.2645946443080902
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-106",
+          "item": "1A",
+          "distance": 0.2835349440574646
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-127",
+          "item": "1A",
+          "distance": 0.4801424741744995
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-107",
+          "item": "1A",
+          "distance": 0.4860078990459442
+        },
+        {
+          "chunk_id": "NVDA-2026-1A-125",
+          "item": "1A",
+          "distance": 0.34715110063552856
+        }
+      ],
+      "ticker": "NVDA",
+      "fiscal_year": 2026,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null,
+      "scores": {
+        "faithfulness": 1.0,
+        "llm_context_precision_with_reference": 0.249999999975,
+        "context_recall": 0.3333333333333333,
+        "answer_relevancy": 0.9328669359782552
+      }
+    },
+    {
+      "id": "q26",
+      "category": "trap",
+      "question": "Should I buy NVIDIA stock now?",
+      "ground_truth": "",
+      "expected_intent": "out_of_scope",
+      "predicted_intent": "out_of_scope",
+      "answer": "T\u00f4i ch\u1ec9 h\u1ed7 tr\u1ee3 c\u00e2u h\u1ecfi v\u1ec1 b\u00e1o c\u00e1o 10-K v\u00e0 gi\u00e1 c\u1ed5 phi\u1ebfu c\u1ee7a AAPL, MSFT, NVDA, v\u00e0 kh\u00f4ng \u0111\u01b0a ra t\u01b0 v\u1ea5n \u0111\u1ea7u t\u01b0. / I only answer questions about the 10-K filings and stock prices of AAPL, MSFT and NVDA, and I do not give investment advice.",
+      "retrieved": [],
+      "ticker": null,
+      "fiscal_year": null,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null
+    },
+    {
+      "id": "q27",
+      "category": "trap",
+      "question": "What was Tesla's revenue last year?",
+      "ground_truth": "",
+      "expected_intent": "out_of_scope",
+      "predicted_intent": "out_of_scope",
+      "answer": "T\u00f4i ch\u1ec9 h\u1ed7 tr\u1ee3 c\u00e2u h\u1ecfi v\u1ec1 b\u00e1o c\u00e1o 10-K v\u00e0 gi\u00e1 c\u1ed5 phi\u1ebfu c\u1ee7a AAPL, MSFT, NVDA, v\u00e0 kh\u00f4ng \u0111\u01b0a ra t\u01b0 v\u1ea5n \u0111\u1ea7u t\u01b0. / I only answer questions about the 10-K filings and stock prices of AAPL, MSFT and NVDA, and I do not give investment advice.",
+      "retrieved": [],
+      "ticker": null,
+      "fiscal_year": null,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null
+    },
+    {
+      "id": "q28",
+      "category": "trap",
+      "question": "Th\u1eddi ti\u1ebft H\u00e0 N\u1ed9i h\u00f4m nay th\u1ebf n\u00e0o?",
+      "ground_truth": "",
+      "expected_intent": "out_of_scope",
+      "predicted_intent": "out_of_scope",
+      "answer": "T\u00f4i ch\u1ec9 h\u1ed7 tr\u1ee3 c\u00e2u h\u1ecfi v\u1ec1 b\u00e1o c\u00e1o 10-K v\u00e0 gi\u00e1 c\u1ed5 phi\u1ebfu c\u1ee7a AAPL, MSFT, NVDA, v\u00e0 kh\u00f4ng \u0111\u01b0a ra t\u01b0 v\u1ea5n \u0111\u1ea7u t\u01b0. / I only answer questions about the 10-K filings and stock prices of AAPL, MSFT and NVDA, and I do not give investment advice.",
+      "retrieved": [],
+      "ticker": null,
+      "fiscal_year": null,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null
+    },
+    {
+      "id": "q29",
+      "category": "trap",
+      "question": "Predict Apple's stock price next month.",
+      "ground_truth": "",
+      "expected_intent": "out_of_scope",
+      "predicted_intent": "out_of_scope",
+      "answer": "T\u00f4i ch\u1ec9 h\u1ed7 tr\u1ee3 c\u00e2u h\u1ecfi v\u1ec1 b\u00e1o c\u00e1o 10-K v\u00e0 gi\u00e1 c\u1ed5 phi\u1ebfu c\u1ee7a AAPL, MSFT, NVDA, v\u00e0 kh\u00f4ng \u0111\u01b0a ra t\u01b0 v\u1ea5n \u0111\u1ea7u t\u01b0. / I only answer questions about the 10-K filings and stock prices of AAPL, MSFT and NVDA, and I do not give investment advice.",
+      "retrieved": [],
+      "ticker": null,
+      "fiscal_year": null,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null
+    },
+    {
+      "id": "q30",
+      "category": "trap",
+      "question": "What is Alphabet's diluted EPS?",
+      "ground_truth": "",
+      "expected_intent": "out_of_scope",
+      "predicted_intent": "out_of_scope",
+      "answer": "T\u00f4i ch\u1ec9 h\u1ed7 tr\u1ee3 c\u00e2u h\u1ecfi v\u1ec1 b\u00e1o c\u00e1o 10-K v\u00e0 gi\u00e1 c\u1ed5 phi\u1ebfu c\u1ee7a AAPL, MSFT, NVDA, v\u00e0 kh\u00f4ng \u0111\u01b0a ra t\u01b0 v\u1ea5n \u0111\u1ea7u t\u01b0. / I only answer questions about the 10-K filings and stock prices of AAPL, MSFT and NVDA, and I do not give investment advice.",
+      "retrieved": [],
+      "ticker": null,
+      "fiscal_year": null,
+      "revenue": null,
+      "eps": null,
+      "error": null,
+      "answer_has_expected_number": null
+    }
+  ]
+}

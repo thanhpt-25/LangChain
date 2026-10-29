@@ -1,0 +1,203 @@
+{
+  "q01": {
+    "intent": "filing",
+    "tickers": [
+      "AAPL"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q02": {
+    "intent": "filing",
+    "tickers": [
+      "AAPL"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q03": {
+    "intent": "filing",
+    "tickers": [
+      "AAPL"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q04": {
+    "intent": "filing",
+    "tickers": [
+      "MSFT"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q05": {
+    "intent": "filing",
+    "tickers": [
+      "MSFT"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q06": {
+    "intent": "filing",
+    "tickers": [
+      "MSFT"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q07": {
+    "intent": "filing",
+    "tickers": [
+      "NVDA"
+    ],
+    "language": "en",
+    "search_query": "What was NVIDIA's total revenue in its most recent fiscal year?"
+  },
+  "q08": {
+    "intent": "filing",
+    "tickers": [
+      "NVDA"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q09": {
+    "intent": "filing",
+    "tickers": [
+      "NVDA"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q10": {
+    "intent": "filing",
+    "tickers": [
+      "NVDA"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q11": {
+    "intent": "filing",
+    "tickers": [
+      "AAPL"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q12": {
+    "intent": "filing",
+    "tickers": [
+      "AAPL"
+    ],
+    "language": "en",
+    "search_query": "What legal and regulatory risks around the App Store does Apple describe?"
+  },
+  "q13": {
+    "intent": "filing",
+    "tickers": [
+      "AAPL"
+    ],
+    "language": "en",
+    "search_query": "How does Apple say foreign currency fluctuations could affect its results?"
+  },
+  "q14": {
+    "intent": "filing",
+    "tickers": [
+      "MSFT"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q15": {
+    "intent": "filing",
+    "tickers": [
+      "MSFT"
+    ],
+    "language": "en",
+    "search_query": "What cybersecurity risks does Microsoft describe in its 10-K?"
+  },
+  "q16": {
+    "intent": "filing",
+    "tickers": [
+      "MSFT"
+    ],
+    "language": "en",
+    "search_query": "What competitive risks does Microsoft identify?"
+  },
+  "q17": {
+    "intent": "filing",
+    "tickers": [
+      "NVDA"
+    ],
+    "language": "en",
+    "search_query": "How do export controls affect NVIDIA's business according to its 10-K?"
+  },
+  "q18": {
+    "intent": "filing",
+    "tickers": [
+      "NVDA"
+    ],
+    "language": "en",
+    "search_query": "What manufacturing and supply dependency risks does NVIDIA disclose?"
+  },
+  "q19": {
+    "intent": "filing",
+    "tickers": [
+      "NVDA"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q20": {
+    "intent": "filing",
+    "tickers": [
+      "NVDA"
+    ],
+    "language": "en",
+    "search_query": null
+  },
+  "q21": {
+    "intent": "both",
+    "tickers": [
+      "AAPL"
+    ],
+    "language": "en",
+    "search_query": "What were Apple's total net sales in its most recent fiscal year?"
+  },
+  "q22": {
+    "intent": "both",
+    "tickers": [
+      "MSFT"
+    ],
+    "language": "en",
+    "search_query": "What is Microsoft's biggest competitive risk disclosed in its 10-K?"
+  },
+  "q23": {
+    "intent": "both",
+    "tickers": [
+      "NVDA"
+    ],
+    "language": "en",
+    "search_query": "What was NVIDIA's total revenue in its most recent fiscal year?"
+  },
+  "q24": {
+    "intent": "both",
+    "tickers": [
+      "AAPL",
+      "MSFT"
+    ],
+    "language": "en",
+    "search_query": "Compare Apple's and Microsoft's total revenue in their most recent fiscal year."
+  },
+  "q25": {
+    "intent": "both",
+    "tickers": [
+      "NVDA"
+    ],
+    "language": "en",
+    "search_query": "How do export controls threaten NVIDIA's business according to its 10-K?"
+  }
+}

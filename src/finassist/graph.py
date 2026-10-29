@@ -56,13 +56,30 @@ def _join(*parts: str | None) -> str | None:
     return "; ".join(p for p in parts if p) or None
 
 
+def resolve_intent(res: IntentResult) -> tuple[Intent, list[str]]:
+    """Keep only covered tickers; an intent that needs data but has no covered ticker becomes out_of_scope."""
+    tickers = [t for t in dict.fromkeys(x.strip().upper() for x in res.tickers) if t in TICKERS]
+    intent = res.intent if (tickers or res.intent == "out_of_scope") else "out_of_scope"
+    return intent, tickers
+
+
+def retrieval_query(question: str, intent: Intent, result: IntentResult) -> str:
+    """Text sent to retrieval. The classifier's English rewrite is used for `both` questions (it drops the
+    price wording that pulls the search toward valuation chunks) and for non-English questions. Every other
+    question, including English `filing` and `price` ones, is searched as asked. `intent` is the effective
+    intent after ticker filtering."""
+    rewritten = (result.search_query or "").strip()
+    if rewritten and (intent == "both" or result.language == "other"):
+        return rewritten
+    return question
+
+
 def build_graph(deps: Deps):
     def classify_intent(state: GraphState) -> GraphState:
         res = deps.classify(state["question"])
-        tickers = [t for t in dict.fromkeys(x.strip().upper() for x in res.tickers) if t in TICKERS]
-        intent = res.intent if (tickers or res.intent == "out_of_scope") else "out_of_scope"
-        sq = (res.search_query or "").strip() if res.language == "other" else ""
-        return {"intent": intent, "tickers": tickers, "search_query": sq or state["question"],
+        intent, tickers = resolve_intent(res)
+        return {"intent": intent, "tickers": tickers,
+                "search_query": retrieval_query(state["question"], intent, res),
                 "retrieved_chunks": [], "price_data": [], "error": None, "short_circuit": False}
 
     def route(state: GraphState) -> str:

@@ -13,20 +13,21 @@ Thư mục này là điểm bắt đầu cho người muốn hiểu, chạy th�
 | Xem phạm vi, yêu cầu và quyết định ban đầu | [`superpowers/specs/2026-10-28-finance-rag-assistant-design.md`](superpowers/specs/2026-10-28-finance-rag-assistant-design.md) | kế hoạch triển khai ở dòng dưới |
 | Xem cách dự án được xây và kiểm chứng | [`superpowers/plans/2026-10-28-finance-rag-assistant.md`](superpowers/plans/2026-10-28-finance-rag-assistant.md) | [`TEAM_LOG.md`](TEAM_LOG.md) |
 | Xem thiết kế và kế hoạch của đợt cải thiện truy hồi | [`superpowers/specs/2026-10-29-retrieval-improvement-design.md`](superpowers/specs/2026-10-29-retrieval-improvement-design.md) | [`superpowers/plans/2026-10-29-retrieval-improvement.md`](superpowers/plans/2026-10-29-retrieval-improvement.md) và [`../reports/retrieval_experiments.md`](../reports/retrieval_experiments.md) |
+| Xem thiết kế và kế hoạch của đợt viết lại truy vấn cho câu `both` | [`superpowers/specs/2026-10-29-both-query-rewrite-design.md`](superpowers/specs/2026-10-29-both-query-rewrite-design.md) | [`superpowers/plans/2026-10-29-both-query-rewrite.md`](superpowers/plans/2026-10-29-both-query-rewrite.md) và phần both-rewrite cuối [`../reports/retrieval_experiments.md`](../reports/retrieval_experiments.md) |
 
 ## Các tài liệu chính
 
-- [`ARCHITECTURE.md`](ARCHITECTURE.md): hệ thống nhìn từ bên ngoài, các thành phần và quan hệ giữa chúng, control flow của đồ thị LangGraph, data flow (kể cả một trace thật của câu `both` và cấu trúc bên trong `Retriever`), ai quyết định điều gì, các kiểu sự cố, quyết định kiến trúc kèm phương án đã loại và số đo, và giới hạn đã biết.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md): hệ thống nhìn từ bên ngoài, các thành phần và quan hệ giữa chúng, control flow của đồ thị LangGraph, data flow (kể cả một trace thật của câu `both`, quy tắc chọn truy vấn cho `retrieve` và cấu trúc bên trong `Retriever`), ai quyết định điều gì, các kiểu sự cố, quyết định kiến trúc kèm phương án đã loại và số đo, và giới hạn đã biết.
 - [`KNOWLEDGE_CHECK.md`](KNOWLEDGE_CHECK.md): câu trả lời mẫu cho Giải thích, Dự đoán, Gỡ lỗi và Bảo vệ lựa chọn, dùng khi bảo vệ hoặc demo.
 - [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md): kịch bản demo 8 phút, phương án dự phòng, kiểm tra an toàn và mẫu hỏi đáp.
-- [`NEXT_STEP.md`](NEXT_STEP.md): kết quả đợt cải thiện truy hồi (chưa đạt mục tiêu) và các hướng còn lại, mỗi hướng có cách đo.
+- [`NEXT_STEP.md`](NEXT_STEP.md): kết quả đợt cải thiện truy hồi (hai mục tiêu của bộ đo đạt sau bước viết lại truy vấn, với biên mỏng) và các hướng còn lại, mỗi hướng có cách đo.
 - [`TEAM_LOG.md`](TEAM_LOG.md): lịch sử đóng góp theo Git.
 - [`evidence/`](evidence/): link LangSmith và bản text của các trace thật.
 
 ## Hai điều cần biết trước khi dùng số liệu
 
 1. Giá cổ phiếu thay đổi theo thời điểm. Hãy đọc trường `as_of` và `stale`, và đừng lặp lại giá từ một trace cũ như giá hiện tại.
-2. Các điểm RAGAS là bằng chứng của từng lần chạy, kèm nhiễu 0,02 đến 0,03 giữa hai lần chạy cùng cấu hình. Judge dùng cùng model với ứng dụng, nên hãy đọc phần Caveats trong `../reports/ragas_baseline.md` và `../reports/ragas_retrieval_v2.md` trước khi trích số. Số của bộ đo truy hồi và các thí nghiệm nằm ở `../reports/retrieval_experiments.md`.
+2. Các điểm RAGAS là bằng chứng của từng lần chạy, kèm nhiễu 0,02 đến 0,03 giữa hai lần chạy cùng cấu hình (cấu hình có bản viết lại cho câu `both` cho nhiễu lớn hơn, 0,04 ở recall). Judge dùng cùng model với ứng dụng, nên hãy đọc phần Caveats trong `../reports/ragas_baseline.md` và `../reports/ragas_retrieval_v2.md` trước khi trích số (và `../reports/ragas_both_rewrite_1.md`, `../reports/ragas_both_rewrite_2.md` cho cấu hình hiện tại). Số của bộ đo truy hồi và các thí nghiệm nằm ở `../reports/retrieval_experiments.md`.
 
 ## Liên kết với mã nguồn
 
