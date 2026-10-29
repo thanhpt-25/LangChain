@@ -151,14 +151,14 @@ State của đồ thị là một `TypedDict` tên `GraphState`. Mỗi node đ�
 
 | Node | Đọc | Ghi | Hành vi |
 |---|---|---|---|
-| `classify_intent` | `question` | `intent`, `tickers`, `search_query`, và khởi tạo `retrieved_chunks=[]`, `price_data=[]`, `error=None`, `short_circuit=False` | Chuẩn hóa ticker (cắt khoảng trắng, viết hoa), bỏ ticker ngoài AAPL/MSFT/NVDA. Nếu intent cần dữ liệu mà không còn ticker hợp lệ thì đổi thành `out_of_scope`. |
+| `classify_intent` | `question` | `intent`, `tickers`, `search_query`, và khởi tạo `retrieved_chunks=[]`, `price_data=[]`, `error=None`, `short_circuit=False` | Chuẩn hóa ticker (cắt khoảng trắng, viết hoa), bỏ ticker ngoài AAPL/MSFT/NVDA. Nếu intent cần dữ liệu mà không còn ticker hợp lệ thì đổi thành `out_of_scope`. Sau đó `retrieval_query` chọn truy vấn cho `retrieve`: `search_query` tiếng Anh của bộ phân loại khi intent đã lọc là `both` hoặc ngôn ngữ là `other`, còn lại là câu hỏi gốc (mục 4.4). |
 | `price_tool` | `tickers` | `price_data`, `error` | Lấy giá từng ticker. Ticker nào lỗi thì ghi lý do vào `error`, các ticker còn lại vẫn chạy bình thường. |
-| `retrieve` | `search_query`, `tickers` | `retrieved_chunks` | Với mỗi ticker, `Retriever` lấy 30 chunk ứng viên từ Chroma (lọc theo ticker ngay trong truy vấn), cross-encoder `ms-marco-MiniLM-L-6-v2` chấm lại từng cặp câu hỏi và chunk, rồi giữ 5 chunk điểm cao nhất (k = 5 vẫn là số chunk gửi cho LLM). Đặt `FINASSIST_RERANKER=none` thì bỏ bước chấm lại và trả top-5 của vector, đúng như trước đây. Chi tiết ở mục 4.5. |
+| `retrieve` | `search_query`, `tickers` | `retrieved_chunks` | Truy vấn là `search_query`, tức bản viết lại tiếng Anh với câu `both` và câu không phải tiếng Anh, còn câu khác là câu hỏi gốc. Với mỗi ticker, `Retriever` lấy 30 chunk ứng viên từ Chroma (lọc theo ticker ngay trong truy vấn), cross-encoder `ms-marco-MiniLM-L-6-v2` chấm lại từng cặp câu hỏi và chunk, rồi giữ 5 chunk điểm cao nhất (k = 5 vẫn là số chunk gửi cho LLM). Đặt `FINASSIST_RERANKER=none` thì bỏ bước chấm lại và trả top-5 của vector, đúng như trước đây. Chi tiết ở mục 4.5. |
 | `generate_answer` | câu hỏi gốc, chunk, giá | `answer`, và có thể `error`, `short_circuit` | Gọi LLM với context gồm chunk và khối `PRICE DATA`. Với câu cần filing, kiểm tra citation và thử lại nếu thiếu (xem mục 5.2). |
 | `format_output` | toàn bộ state | `output` (`FinanceAnswer`) | Gọi LLM trích field, rồi ghi đè citation và giá bằng dữ liệu tất định. |
 | `refuse` | không đọc gì | `answer`, `output` | Trả mẫu từ chối song ngữ cố định. |
 
-`search_query` luôn có giá trị sau `classify_intent`: bằng câu hỏi gốc, trừ khi người dùng hỏi bằng ngôn ngữ khác tiếng Anh (xem mục 4.4).
+`search_query` luôn có giá trị sau `classify_intent`. Nó là câu hỏi gốc, trừ khi intent là `both` hoặc người dùng hỏi bằng ngôn ngữ khác tiếng Anh (xem mục 4.4). `generate_answer` luôn nhận câu hỏi gốc.
 
 ## 4. Data flow: dữ liệu đến từ đâu và đi đâu
 
@@ -206,7 +206,7 @@ sequenceDiagram
 
     U->>G: question
     G->>L: phân loại (prompt hệ thống + câu hỏi)
-    L-->>G: intent=both, tickers=[NVDA]
+    L-->>G: intent=both, tickers=[NVDA], search_query chỉ về phần 10-K
     G->>P: get_stock_price(NVDA)
     P-->>G: PriceInfo (giá, vốn hóa, P/E, stale=false)
     G->>R: retrieve(search_query, [NVDA])
@@ -236,36 +236,54 @@ Thời gian từng bước trong trace đó:
 | `format_output` | 5,27 giây | `FinanceAnswer` hoàn chỉnh |
 | Tổng | 13,65 giây | |
 
-Trace này được ghi trước khi thêm reranker, nên bước `retrieve` 0,74 giây là top-5 của vector. Trong bộ đo truy hồi, reranker thêm khoảng 120 đến 140 ms mỗi lần truy hồi (p50 từ 12 ms lên 134 đến 149 ms), nhỏ so với hai bước còn lại. Hai bước chiếm gần hết thời gian đều là lời gọi LLM. URL trace và bản text của cây trace nằm ở [`evidence/links.md`](evidence/links.md) và [`evidence/trace_tree.md`](evidence/trace_tree.md). Giá trong trace là ảnh chụp tại thời điểm đó, vì vậy khi demo hãy đọc `as_of` của lần chạy hiện tại.
+Trace này được ghi trước khi thêm reranker và trước khi có bản viết lại truy vấn, nên bước `retrieve` 0,74 giây là top-5 của vector với câu hỏi gốc. Với mã hiện tại, `retrieve` nhận bản viết lại "How do export controls threaten NVIDIA's business according to its 10-K?" (bản lưu cho q25 trong `reports/query_rewrites.json`), và ở hai lần chạy RAGAS `both_rewrite` top-5 là `1A-126`, `1A-106`, `1A-127`, `1A-107`, `1A-125`. Trong bộ đo truy hồi, reranker thêm khoảng 120 đến 140 ms mỗi lần truy hồi (p50 từ 12 ms lên 134 đến 149 ms), nhỏ so với hai bước còn lại. Hai bước chiếm gần hết thời gian đều là lời gọi LLM. URL trace và bản text của cây trace nằm ở [`evidence/links.md`](evidence/links.md) và [`evidence/trace_tree.md`](evidence/trace_tree.md). Giá trong trace là ảnh chụp tại thời điểm đó, vì vậy khi demo hãy đọc `as_of` của lần chạy hiện tại.
 
 ### 4.3 LLM nhìn thấy gì
 
 Ba lời gọi LLM nhận ba loại đầu vào khác nhau.
 
-- Phân loại: prompt hệ thống mô tả bốn intent và danh sách ba ticker, cùng một tin nhắn dạng `QUESTION` rồi đến câu hỏi. Kết quả trả về theo schema `IntentResult`.
+- Phân loại: prompt hệ thống mô tả bốn intent và danh sách ba ticker, cùng một tin nhắn dạng `QUESTION (v2)` rồi đến câu hỏi. Kết quả trả về theo schema `IntentResult`. Prompt còn yêu cầu hai trường `language` và `search_query`. Với intent `both`, `search_query` luôn là một câu hỏi tiếng Anh tự đủ nghĩa chỉ về phần 10-K: bỏ mọi từ về giá, vốn hóa, P/E, cổ phiếu và thị trường, giữ tên của mọi công ty được hỏi (prompt có hai ví dụ, một tiếng Anh và một tiếng Việt). Với câu không phải tiếng Anh và intent khác `both`, `search_query` là bản dịch tiếng Anh giữ tên công ty và thuật ngữ tài chính. Với câu tiếng Anh còn lại, nó là null.
+- Router lưu cache phản hồi của bộ phân loại theo tin nhắn người dùng, không theo prompt hệ thống. Khi thêm các luật trên vào `CLASSIFY_SYSTEM`, phản hồi cũ vẫn được trả và thay đổi bị bỏ qua mà không có cảnh báo, cho đến khi tin nhắn người dùng đổi từ `QUESTION` thành `QUESTION (v2)`. Vì vậy mỗi lần sửa `CLASSIFY_SYSTEM` phải đổi hậu tố này (v3, v4, ...), xem mục 8.
 - Trả lời: prompt hệ thống ra luật (chỉ dùng context, mỗi khẳng định về filing phải kết thúc bằng `[chunk_id]`, không tư vấn đầu tư, trả lời bằng ngôn ngữ của người hỏi), tiếp theo là context và câu hỏi gốc. Context gồm từng chunk có tiêu đề `[chunk_id] (ticker năm Item)` và, nếu có, một khối `PRICE DATA` ghi rõ `stale`.
 - Trích field: câu hỏi, câu trả lời và các chunk mà câu trả lời đã trích dẫn. Nếu câu trả lời không trích chunk nào thì dùng toàn bộ chunk. Kết quả theo schema `LLMExtraction`.
 
-### 4.4 Câu hỏi tiếng Việt
+### 4.4 Truy vấn gửi cho retrieve
 
-Embedding `bge-small-en-v1.5` và 10-K đều là tiếng Anh. Nếu tìm bằng nguyên văn câu tiếng Việt, khoảng cách tới các đoạn đúng lớn tới mức chúng không lọt vào top-k. Khi đo thử với câu rủi ro kiểm soát xuất khẩu của NVIDIA, top-5 không có chunk Item 1A nào (khoảng cách 0,71 đến 0,74), trong khi câu tiếng Anh tương đương cho khoảng cách 0,26.
+Câu hỏi gốc không phải lúc nào cũng là truy vấn tốt nhất. Embedding `bge-small-en-v1.5` và 10-K đều là tiếng Anh, và một câu hỏi `both` chứa cả phần giá lẫn phần báo cáo. Hai trường hợp này có phép đo.
 
-Vì vậy bộ phân loại trả thêm hai trường:
+- Câu tiếng Việt. Khi tìm bằng nguyên văn, khoảng cách tới các đoạn đúng lớn tới mức chúng không lọt vào top-k. Với câu rủi ro kiểm soát xuất khẩu của NVIDIA, top-5 không có chunk Item 1A nào (khoảng cách 0,71 đến 0,74), trong khi câu tiếng Anh tương đương cho khoảng cách 0,26.
+- Câu `both`. Nhóm 5 câu `both` của bộ đo có any@5 40% khi tìm bằng câu gốc (0% ở vector thuần). Phần nói về giá có khả năng kéo truy vấn về các chunk khác với chunk bằng chứng, nhưng chưa có phép đo riêng cho giả thuyết đó; số đo chỉ cho thấy bản viết lại chỉ còn phần 10-K cải thiện kết quả (mục 7.6).
+
+Bộ phân loại vì vậy trả thêm hai trường:
 
 - `language`: `en` hoặc `other`.
-- `search_query`: bản viết lại bằng tiếng Anh, chỉ có khi `language` là `other`.
+- `search_query`: bản viết lại tiếng Anh. Với `both` nó luôn có và chỉ chứa phần 10-K; với câu không phải tiếng Anh nó là bản dịch; với câu tiếng Anh khác thì null.
+
+Hàm `retrieval_query` trong `graph.py` chọn truy vấn theo bảng sau. Nó nhận intent đã qua bước lọc ticker, nên một câu `both` mà không còn ticker hợp lệ trở thành `out_of_scope` và không đi tới retrieve.
+
+| Câu hỏi | Truy vấn gửi cho `retrieve` |
+|---|---|
+| intent là `both` (sau khi lọc ticker) | `search_query` tiếng Anh, chỉ phần 10-K |
+| `language` là `other` | `search_query` tiếng Anh |
+| mọi câu còn lại, kể cả câu `filing` tiếng Anh | câu hỏi gốc |
+
+Nếu `search_query` rỗng thì dùng câu hỏi gốc.
 
 ```mermaid
 flowchart LR
-    Q["Câu hỏi tiếng Việt"] --> C["classify_intent"]
-    C -->|"language = other"| SQ["search_query tiếng Anh"]
+    Q["Câu hỏi gốc"] --> C["classify_intent<br/>retrieval_query"]
+    C -->|"intent = both<br/>hoặc language = other"| SQ["search_query tiếng Anh"]
+    C -->|"các câu còn lại"| OQ["câu hỏi gốc"]
     SQ --> R["retrieve"]
+    OQ --> R
     Q --> G["generate_answer"]
     R --> G
-    G --> A["Câu trả lời tiếng Việt"]
+    G --> A["Câu trả lời, ngôn ngữ của người hỏi"]
 ```
 
-`retrieve` dùng `search_query`, còn `generate_answer` vẫn nhận câu hỏi gốc nên câu trả lời giữ ngôn ngữ của người hỏi. Với câu tiếng Anh, đồ thị bỏ qua `search_query` và tìm bằng câu gốc. Nhờ vậy điểm RAGAS baseline, vốn đo bằng câu tiếng Anh, không bị ảnh hưởng. Sau khi sửa, câu NVIDIA ở trên lấy được 5/5 chunk Item 1A với khoảng cách 0,27 đến 0,47.
+`generate_answer` luôn nhận câu hỏi gốc, nên câu trả lời giữ ngôn ngữ của người hỏi và vẫn nhắc tới phần giá mà người dùng hỏi. Câu `filing` tiếng Anh vẫn tìm bằng câu gốc, nhờ vậy 20 câu không phải `both` của bộ đo không đổi: hạng của từng câu trùng khít với control, và danh sách chunk truy hồi của q01 đến q20 trùng khít ở cả bốn lần chạy RAGAS. Ví dụ cho `both`: câu q24 "Compare Apple's and Microsoft's latest annual revenue and tell me both current stock prices." được viết lại thành "Compare Apple's and Microsoft's total revenue in their most recent fiscal year.", và hạng của hai nhóm bằng chứng đổi từ [10, 12] thành [4, 4]. Ví dụ cho tiếng Việt: sau khi viết lại, câu NVIDIA ở trên lấy được 5/5 chunk Item 1A với khoảng cách 0,27 đến 0,47.
+
+Bảng viết lại của bộ đo nằm ở `reports/query_rewrites.json`, xem mục 9.
 
 ### 4.5 Retriever bên trong
 
@@ -418,7 +436,8 @@ Việc từ chối câu ngoài phạm vi, kể cả xin tư vấn đầu tư, d�
 | Chroma với bộ lọc ticker trong truy vấn | FAISS | Chroma lọc ngay trong truy vấn. FAISS của LangChain lọc sau khi tìm `fetch_k` ứng viên, nên với kho ba công ty phải tăng `fetch_k` để chắc chắn đủ k kết quả cho một ticker | Thêm một dịch vụ lưu trữ cục bộ |
 | Embedding `bge-small-en-v1.5` chạy cục bộ | Embedding của OpenAI | Không cần thêm khóa API, filing không rời khỏi máy. Anthropic không có API embedding | Chỉ tiếng Anh, nên cần `search_query` cho câu tiếng Việt |
 | Top-k tính riêng cho từng ticker | Một truy vấn chung cho cả kho | Câu so sánh hai công ty có đủ context của cả hai | Prompt dài hơn khi hỏi nhiều ticker |
-| `search_query` chỉ dùng khi `language = other` | Viết lại mọi câu hỏi | Giữ nguyên hành vi, nên điểm RAGAS baseline vẫn có giá trị | Câu tiếng Anh diễn đạt vụng không được viết lại |
+| `search_query` chỉ dùng cho câu `both` và câu không phải tiếng Anh | Viết lại mọi câu hỏi | Câu `filing` tiếng Anh giữ nguyên hành vi, nên hạng truy hồi của 20 câu không phải `both` không đổi và điểm RAGAS baseline của chúng vẫn so sánh được | Câu `filing` tiếng Anh diễn đạt vụng không được viết lại. Bộ phân loại vẫn điền `search_query` cho 7 câu như vậy trong bảng viết lại, và quy tắc bỏ qua chúng |
+| Câu `both` truy hồi bằng `search_query` tiếng Anh chỉ phần 10-K (đã dùng) | Tìm bằng câu hỏi gốc có cả phần giá | Bộ đo 25 câu, không gọi LLM: any@5 64% lên 72%, all@5 36% lên 40%, MRR 0,376 lên 0,404, nhóm combined any@5 40% lên 80%. Đạt cổng đặt trước (combined từ 60%, overall từ 64%, numeric và risk không giảm), và hai mục tiêu 70% và 40% nay đạt. Đổi hạng: q21 5 lên 2, q24 [10, 12] lên [4, 4], q25 [None, None] lên [9, 4]; q22 vẫn không có bằng chứng trong 30 ứng viên, q23 không đổi. RAGAS hai lần chạy mới so với hai lần cũ: precision 0,342 lên 0,377 và 0,372, recall 0,400 và 0,413 lên 0,420 và 0,460, faithfulness 0,939 và 0,933 lên 0,952 và 0,929, relevancy 0,766 và 0,770 lên 0,772 và 0,799. Chỉ precision tăng vượt nhiễu; q24 chuyển từ "không so sánh được" sang nêu cả hai doanh thu | Không thêm lời gọi LLM, vì `search_query` là một trường trong kết quả phân loại sẵn có. Kết luận dựa trên 5 câu (mỗi câu 20 điểm ở nhóm combined, 4 điểm ở số chung), all@5 chỉ vừa đúng ngưỡng 40%, và bản viết lại do LLM tạo nên có thể khác giữa các lần chạy. Chất lượng phụ thuộc vào bộ phân loại (mục 8) |
 | Ghim model `kr/claude-sonnet-5.5` | Các model `auto/*` của router | `auto/*` thường trả lỗi giới hạn tần suất từ upstream | Phụ thuộc một model cụ thể |
 | Record và replay | Chỉ chạy live | Demo vẫn chạy khi mất mạng hoặc router lỗi | Replay luôn hiện câu đã ghi, không phải câu mới gõ; Streamlit ghi rõ điều này |
 | Reranker cục bộ `ms-marco-MiniLM-L-6-v2` trên 30 ứng viên của vector (đã dùng) | Chỉ vector top-5 | Trên bộ đo 25 câu, any@5 từ 48% lên 64% (4 câu), all@5 từ 28% lên 36%, nhóm combined từ 0% lên 40%. Vượt ngưỡng 15 điểm đặt trước, nhưng chỉ hơn ngưỡng 1 điểm | Thêm khoảng 120 đến 140 ms mỗi lần truy hồi và một lần tải mô hình khoảng 90 MB. MRR gần như không đổi (0,371 lên 0,376), all@5 của nhóm risk giảm từ 10% xuống 0%, và q04 kém đi ở RAGAS (mục 8) |
@@ -428,12 +447,15 @@ Việc từ chối câu ngoài phạm vi, kể cả xin tư vấn đầu tư, d�
 
 ## 8. Giới hạn đã biết
 
-1. Retrieval còn bỏ lỡ bằng chứng, và mục tiêu đặt ra chưa đạt. Trên bộ đo 25 câu (không gọi LLM), cấu hình hiện tại đạt any@5 64% và all@5 36%, so với 48% và 28% của vector thuần. Mục tiêu là 70% và 40%, thiếu 2 và 1 câu. Chín câu vẫn trượt ở top-5: q04, q05, q10 (số liệu), q11, q15, q16 (rủi ro), q22, q24, q25 (kết hợp). Ba câu q11, q22, q25 không có chunk bằng chứng nào trong 30 ứng viên, nên reranker không cứu được. Ví dụ điển hình là lợi nhuận ròng của Microsoft (q05): chunk chứa `133,749` nằm ở hạng 12 và hệ thống trả lời rằng nó không thấy số liệu. Phần RAGAS cho kết quả lẫn lộn. Context precision tăng từ 0,309 lên 0,342 và answer relevancy từ 0,687 lên 0,766 (phần lớn vì ít câu bị từ chối hơn). Faithfulness (0,939) và context recall (0,387 lên 0,400) không đổi trong phạm vi nhiễu 0,02 đến 0,03 giữa hai lần chạy vector thuần. q21 và q03 nay trả lời được; q04 tệ đi (recall từ 1,0 xuống 0,0); q05, q04, q24 vẫn thiếu bằng chứng trong ngữ cảnh. Vì vậy mức cải thiện nên đọc là nhỏ và chưa kết luận được ở phần RAGAS. Số liệu đầy đủ nằm ở [`../reports/retrieval_experiments.md`](../reports/retrieval_experiments.md).
+1. Retrieval còn bỏ lỡ bằng chứng. Trên bộ đo 25 câu (không gọi LLM), cấu hình hiện tại, với bản viết lại cho câu `both`, đạt any@5 72% và all@5 40%, so với 48% và 28% của vector thuần và 64% và 36% trước khi viết lại. Hai mục tiêu 70% và 40% nay đạt, nhưng all@5 vừa đúng ngưỡng và any@5 hơn đúng 2 điểm, và phần tăng đến từ hai câu `both` (q24 và q25). Bảy câu vẫn trượt ở top-5: q04, q05, q10 (số liệu), q11, q15, q16 (rủi ro), q22 (kết hợp). Hai câu q11 và q22 không có chunk bằng chứng nào trong 30 ứng viên, nên reranker không cứu được. Ví dụ điển hình là lợi nhuận ròng của Microsoft (q05): chunk chứa `133,749` nằm ở hạng 12 và hệ thống trả lời rằng nó không thấy số liệu. RAGAS cho kết quả lẫn lộn. Bốn lần chạy cho faithfulness 0,939, 0,933, 0,952, 0,929, precision 0,342, 0,342, 0,377, 0,372, recall 0,400, 0,413, 0,420, 0,460 và relevancy 0,766, 0,770, 0,772, 0,799 (lần lượt `retrieval_v2`, `demo_check`, `both_rewrite_1`, `both_rewrite_2`). Nhiễu giữa hai lần chạy của cấu hình mới là 0,04 ở recall và 0,023 ở faithfulness, lớn hơn nhiễu của cấu hình cũ, nên chỉ precision (cao hơn khoảng 0,03) là thay đổi thật; recall (+0,03) và relevancy (+0,02) nằm trong nhiễu. Ở nhóm combined, precision từ 0,107 lên 0,282 và 0,257 và recall từ 0,267 và 0,200 lên 0,333 và 0,533, nhưng nhóm chỉ có 5 câu. q22 vẫn thiếu bằng chứng và q23 có recall 0,0 ở mọi lần chạy vì chunk vàng `NVDA-2026-7-012` không bao giờ được lấy về. q04 vẫn kém hơn vector thuần (recall từ 1,0 xuống 0,0). Số liệu đầy đủ nằm ở [`../reports/retrieval_experiments.md`](../reports/retrieval_experiments.md).
 2. `ground_numbers` không hiểu ý nghĩa của con số. Ở q10 và q20 của baseline, hệ thống trả lời "total revenue 139,297" cho NVIDIA. Con số đó đến từ chunk `NVDA-2026-7-029`, một bảng theo mảng không có tiêu đề cột, và nó có thật trong chunk nên được giữ lại. Doanh thu thật là 215,938.
 3. Embedding chỉ có tiếng Anh. `search_query` giúp câu tiếng Việt, nhưng câu hỏi về bảng số liệu bằng tiếng Việt vẫn có thể trượt chunk.
 4. Từ chối chỉ có một lớp, như mục 7.5.
 5. LLM chạy ở `temperature=0` nên lần thử lại trong `generate_answer` có thể cho đúng câu trả lời cũ. Chưa có phép đo cho thấy lần thử thứ hai cải thiện được gì.
 6. Judge của RAGAS dùng cùng model với ứng dụng, nên điểm faithfulness có thể cao hơn thực tế.
+7. Chất lượng bản viết lại phụ thuộc vào bộ phân loại. Một bản viết lại làm mất tên công ty hoặc đổi nghĩa câu hỏi sẽ kéo retrieve tới các chunk sai, và hệ thống không có bước nào kiểm tra bản viết lại. Hiện có một kiểm tra bằng router thật: `tests/test_both_rewrite.py` chạy 8 câu `both` và đòi bản viết lại là tiếng Anh, không còn từ về giá và giữ tên công ty. Tám câu này chỉ là một mẫu.
+8. Kết quả của bản viết lại dựa trên 5 câu `both`. Mỗi câu là 20 điểm ở nhóm combined và 4 điểm ở số chung, và việc đạt cả hai mục tiêu nhờ vào 2 câu đổi hạng (q24, q25). Bảng `reports/query_rewrites.json` phát lại đúng một lần chạy, nên nó tái tạo được số liệu và không cho biết bộ phân loại có viết lại giống nhau ở mỗi lần. Cần một bộ đo lớn hơn, với nhiều câu `both` hơn, trước khi coi kết quả là ổn định.
+9. Router lưu cache phản hồi của bộ phân loại theo tin nhắn người dùng. Một thay đổi ở `CLASSIFY_SYSTEM` bị bỏ qua mà không báo gì cho tới khi tin nhắn người dùng đổi (hiện là `QUESTION (v2)` trong `chains.py`), và đã xảy ra đúng như vậy khi thêm luật viết lại. Cách chặn lỗi này mới là một quy ước ghi trong tài liệu, chưa có kiểm tra tự động (xem `NEXT_STEP.md`).
 
 Các hướng còn lại, rút ra từ những gì đã đo, nằm trong [`NEXT_STEP.md`](NEXT_STEP.md).
 
@@ -446,7 +468,9 @@ uv run finassist ask "..."                 # chạy live
 uv run finassist ask "..." --record runs/demo.json   # chạy live và lưu kết quả
 uv run finassist ask x --replay runs/demo.json       # phát lại offline, câu hỏi truyền vào bị bỏ qua
 uv run streamlit run app/streamlit_app.py  # giao diện; ô Replay dùng runs/demo.json
-uv run python -m eval.retrieval_eval --label "tên lần chạy" [--append reports/retrieval_experiments.md]   # bộ đo truy hồi, không gọi LLM
+uv run python -m eval.retrieval_eval --label "tên lần chạy" [--append reports/retrieval_experiments.md]   # bộ đo truy hồi, tìm bằng câu hỏi gốc, không gọi LLM
+uv run python -m eval.retrieval_eval --label "tên lần chạy" --classify --save-rewrites reports/query_rewrites.json   # tìm bằng truy vấn của bộ phân loại thật (cần router), lưu bảng viết lại
+uv run python -m eval.retrieval_eval --label "tên lần chạy" --rewrites reports/query_rewrites.json   # phát lại bảng đã lưu, không cần router
 ```
 
 Biến môi trường của phần truy hồi (đặt trong `.env` hoặc shell):
@@ -462,6 +486,14 @@ Biến môi trường của phần truy hồi (đặt trong `.env` hoặc shell)
 | `FINASSIST_CHROMA_DIR` | `data/chroma` | thư mục kho Chroma, dùng để thử một kho khác mà không đụng kho chuẩn |
 
 Bộ đo đọc 25 câu có `evidence` trong `eval/golden_set.json`, in any@K, all@K, MRR và độ trễ theo nhóm, và nhận thêm `--mode`, `--reranker`, `--candidates`, `--show-misses` để thử một cấu hình mà không đổi `.env`. Lần chạy đầu với reranker tải mô hình về máy, sau đó chạy offline.
+
+Ba tùy chọn của bộ đo liên quan tới bản viết lại truy vấn.
+
+- Không có tùy chọn nào: mọi câu tìm bằng câu hỏi gốc. Đây là control.
+- `--classify`: mỗi câu đi qua bộ phân loại thật (cần router) và truy vấn được chọn bằng cùng quy tắc `retrieval_query` như ứng dụng. `--save-rewrites <file>` ghi bảng kết quả phân loại của 25 câu không phải câu bẫy ra file JSON.
+- `--rewrites <file>`: đọc bảng đã lưu thay cho bộ phân loại, nên chạy được offline và cho đúng số liệu của lần chạy đã lưu.
+
+`reports/query_rewrites.json` là bảng của lần chạy `--classify` đã dùng để quyết định (khóa là id câu hỏi; mỗi mục có `intent`, `tickers`, `language`, `search_query`). Bản viết lại do LLM tạo, nên một lần `--classify` mới có thể cho bảng khác.
 
 `runtime.ask` gọi đồ thị với `run_name=finassist`, tag mặc định `demo` và metadata `app_version`. Khi các biến `LANGSMITH_*` có trong `.env`, LangChain tự gửi trace gồm từng node, từng lời gọi LLM, đầu vào và đầu ra của `price_tool` và danh sách chunk của `retrieve`. Lệnh `uv run python scripts/trace_link.py` in URL của trace mới nhất.
 
