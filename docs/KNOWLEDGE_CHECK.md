@@ -1,8 +1,8 @@
-# KNOWLEDGE CHECK (Explain / Predict / Debug / Justify)
+# Câu hỏi kiểm tra kiến thức (Giải thích / Dự đoán / Gỡ lỗi / Bảo vệ lựa chọn)
 
 Mỗi mục có một câu trả lời sẵn 60-90 giây (đọc to khoảng 150-200 từ). Mọi số liệu lấy từ `reports/ragas_baseline.{md,json}`, `docs/evidence/` và `runs/demo.json`. `file:line` đã kiểm tra với code hiện tại.
 
-## 1. Explain: "Hãy giải thích luồng xử lý của một câu hỏi"
+## 1. Giải thích: "Hãy giải thích luồng xử lý của một câu hỏi"
 
 Dùng câu `both`: "What is NVIDIA's current stock price and how do export controls threaten it?" (trace thật trong `docs/evidence/trace_tree.md`).
 
@@ -12,7 +12,7 @@ Dùng câu `both`: "What is NVIDIA's current stock price and how do export contr
 
 Các file nên nêu tên: `graph.py` (điều phối), `chains.py` (LLM thật cho từng node), `postprocess.py` (citation và grounding), `tools.py` (giá).
 
-## 2. Predict: "Với câu q21, state và tool call sẽ thế nào?"
+## 2. Dự đoán: "Với câu q21, state và tool call sẽ thế nào?"
 
 q21 (`eval/golden_set.json`): "What is Apple's current stock price, and what were its total net sales last fiscal year?", `expected_intent = both`.
 
@@ -31,13 +31,14 @@ q21 (`eval/golden_set.json`): "What is Apple's current stock price, and what wer
 
 **Câu trả lời (60-90 s):** "Với q21 em dự đoán `classify_intent` trả `both` và ticker AAPL, nên đi `price_tool` trước, gọi `get_stock_price('AAPL')` và state có một `PriceInfo`. `after_price` thấy intent `both` nên sang `retrieve`, lấy 5 chunk AAPL. Em dự đoán rủi ro nằm ở đây: chunk có Total net sales FY2025 là `AAPL-2025-7-005` có thể không nằm trong top-5. Rồi `generate_answer` ghép giá và chunk, `format_output` chỉ giữ citation khớp chunk đã retrieve và đặt `revenue` là null nếu số không có trong chunk. Em đã chạy thật để đối chiếu: intent và tool call đúng như dự đoán, giá 343.83 từ tool, nhưng 5 chunk đều là Item 8 và không có `7-005`, nên câu trả lời hedge thay vì bịa số."
 
-## 3. Debug: "Một case tệ trong báo cáo: vì sao?"
+## 3. Gỡ lỗi: "Một trường hợp có kết quả kém trong báo cáo: vì sao?"
 
 Case: **q05** "What was Microsoft's net income in its most recent fiscal year?" (faithfulness 0.714; precision, recall, relevancy đều 0.0).
 
 **Bằng chứng** (`reports/ragas_baseline.json`, `per_question` q05; mục "Worst cases" trong `reports/ragas_baseline.md`):
 - Golden chunk là `MSFT-2026-8-001` (income statement, net income 133,749). Không nằm trong 5 chunk được retrieve: `MSFT-2026-8-079`, `7-002`, `8-134`, `7-018`, `7-020` (distance tốt nhất 0.439).
 - Câu trả lời từ chối đúng ("context doesn't include Microsoft's net income for fiscal year 2026"), nêu operating income 155,237 từ `7-020` và các số pro forma của FY2024/2023 từ `8-079`. Không bịa số; `revenue = null`, `eps = null`; `answer_has_expected_number = false`.
+- Con số net income 133,749 cũng nằm trong `MSFT-2026-8-000` và `MSFT-2026-7-016`; cả ba chunk chứa nó đều không được retrieve.
 - Nội dung chunk `MSFT-2026-8-001` (đọc từ `data/raw` qua `load_filing`) bắt đầu bằng "Net income $ 133,749 $ 101,832 ..." mỗi số một dòng riêng, không có từ "Microsoft" hay "fiscal year" trong đoạn đầu.
 
 **Phân tích nguyên nhân:** lỗi nằm ở bước `retrieve`, không phải ở LLM. Retrieval dựa vào độ tương đồng embedding bge-small giữa câu hỏi và chunk; chunk bảng gồm chủ yếu chữ số nên khớp kém, trong khi chunk MD&A và note có nhiều chữ mô tả hơn. Đây là giả thuyết phù hợp với dữ liệu (cùng mẫu ở q04, q21, q24, q03: "In 5 of 5 worst cases the golden chunk id ... was not retrieved"); chưa kiểm chứng bằng thí nghiệm cô lập. Faithfulness 0.71 là do một số câu trong answer (so sánh với pro forma, "closest figure") không được judge xem là suy ra trực tiếp từ context; judge chính là model của app nên điểm này còn có thể bị chấm lỏng (Caveats).
@@ -46,15 +47,25 @@ Case: **q05** "What was Microsoft's net income in its most recent fiscal year?" 
 
 **Câu trả lời (60-90 s):** "Em chọn q05, net income của Microsoft. Faithfulness 0.71 và cả precision, recall đều 0. Em nhìn `per_question` thì thấy chunk đúng `MSFT-2026-8-001` không nằm trong 5 chunk retrieve; thay vào đó là các chunk MD&A và note pro forma. Câu trả lời nói thẳng là context không có net income FY2026 và nêu operating income 155,237 từ `7-020`, nên không bịa số, `revenue` và `eps` đều null. Vậy lỗi nằm ở retrieval chứ không phải generation: chunk bảng chỉ toàn chữ số nên embedding khớp kém với câu hỏi. Đó là giả thuyết, đồng thời cùng mẫu xuất hiện ở 5 trên 5 case tệ nhất. Em chưa chứng minh bằng thí nghiệm riêng. Cách sửa em đề xuất là hybrid BM25 cộng vector có reranker, và giữ tiêu đề cột khi chunk bảng, đo lại bằng cùng golden set."
 
-## 4. Justify: "Chọn một trace, nêu một cải tiến, và lý do"
+### Ca Debug thứ hai: con số sai vẫn qua grounding (q10, q20)
+
+Case: **q10** "How much revenue did NVIDIA's Data Center market platform generate...?" và **q20** "What did NVIDIA's MD&A give as the main drivers of revenue change...?" (`reports/ragas_baseline.json`, `per_question`).
+
+**Bằng chứng:** cả hai câu trả lời nêu "total revenue $139,297" (so với $87,960 năm trước) từ chunk `NVDA-2026-7-029`, một bảng segment không có tiêu đề cột (Compute & Networking 130,141; Graphics 9,156; Total 139,297; 130,141 + 9,156 = 139,297). Doanh thu thật FY2026 là 215,938 (q07 trả đúng, năm trước 130,497). Trường `revenue` = 139297 ở cả hai dòng. Faithfulness: q20 = 1.0, q10 = 0.941. Câu trả lời q10 còn ghi chú nhãn bị cắt và thiếu đơn vị; q20 chỉ nói không thấy đơn vị.
+
+**Phân tích nguyên nhân:** (1) retrieval không lấy được chunk đúng (bảng doanh thu theo thị trường `NVDA-2026-15-141` cho q10; `7-012` cho q20) và lấy một bảng không có tiêu đề; (2) `ground_numbers` (`postprocess.py:36-44`) chỉ kiểm tra chuỗi "139,297" có trong một chunk đã retrieve, không kiểm tra con số đó là gì, nên không chặn; (3) faithfulness đo xem câu trả lời có được context hỗ trợ không, và con số có nguyên văn trong context nên điểm cao (judge còn là cùng model với app). Đây là lỗi grounded-but-misread, khác với q05 là hedge đúng. Hướng sửa: giữ tiêu đề cột/nhãn dòng khi chunk bảng (`docs/NEXT_STEP.md`), và/hoặc kiểm tra nhãn ngữ nghĩa của số trước khi điền `revenue` (ví dụ so khớp với nhãn "Revenue"/"Net sales" trong chunk); thêm kiểm tra sanity so với số đã biết.
+
+**Câu trả lời (60-90 s):** "Ca thứ hai là q10 và q20 của NVIDIA. Cả hai trả 'total revenue 139,297', nhưng doanh thu thật là 215,938, và q07 trả đúng số này. Con số lấy từ chunk `7-029`, một bảng segment mất tiêu đề cột: 130,141 cộng 9,156 bằng 139,297. `revenue` bị điền 139297 và vẫn qua `ground_numbers`, vì hàm này chỉ kiểm tra chuỗi số có trong chunk đã retrieve, không kiểm tra nghĩa. Judge chấm faithfulness 1.0 cho q20 vì con số có nguyên văn trong context; judge còn là cùng model với app. Vậy đây không phải hedge: hệ thống đưa ra một số sai nhưng có nguồn. Cách sửa là giữ tiêu đề cột khi chunk bảng, và kiểm tra nhãn của số trước khi điền trường revenue."
+
+## 4. Bảo vệ lựa chọn: "Chọn một trace, nêu một cải tiến và lý do"
 
 Trace chọn: `01a18548-f611-70d1-ad75-5bb267a4a30e` (intent `both`, NVDA; URL trong `docs/evidence/links.md`).
 
 **Câu trả lời (60-90 s):** "Trong trace này `generate_answer` mất 5.50 s và `format_output` mất 5.27 s, mỗi node một lần gọi LLM, còn `retrieve` chỉ 0.74 s. Chất lượng của câu trả lời phụ thuộc vào 5 chunk mà `retrieve` trả về, và baseline cho thấy chỗ yếu nhất của hệ thống là đó: context precision 0.309, context recall 0.387, trong khi faithfulness là 0.939 (số này có thể cao vì judge cùng model với app). Nên em chọn cải tiến retrieval cho chunk báo cáo tài chính: hybrid BM25 cộng vector với reranker, và/hoặc chunk theo bảng giữ tiêu đề cột. Em đo bằng cùng golden set 30 câu, cùng 4 metric, nên so sánh được trước và sau. Em không chọn tăng top-k đơn thuần vì sẽ kéo thêm nhiễu cho LLM và chi phí token. Kế hoạch chi tiết ở `docs/NEXT_STEP.md`."
 
-## 5. Hint questions: câu trả lời chuẩn bị sẵn
+## 5. Câu hỏi gợi ý và câu trả lời chuẩn bị sẵn
 
-### "Show me where" (chỉ cho tôi ở đâu)
+### "Chỉ cho tôi ở đâu"
 
 | Câu hỏi | Chỉ vào đâu |
 |---|---|
@@ -65,25 +76,28 @@ Trace chọn: `01a18548-f611-70d1-ad75-5bb267a4a30e` (intent `both`, NVDA; URL t
 | Chặn số bịa ở đâu? | `ground_numbers`, `postprocess.py:36-44` |
 | Chunk theo Item ở đâu? | `ingest.py:46-62` (`split_items`), `ingest.py:65-74` (`chunk_filing`) |
 
-### "Why this choice" (vì sao chọn)
+### "Vì sao chọn phương án này"
 
-Xem bảng quyết định trong `docs/ARCHITECTURE.md` mục 6. Tóm tắt một câu cho mỗi lựa chọn: LangGraph có nhánh (dễ đánh giá hơn ReAct tự do), Chroma (có filter ticker, FAISS không), bge-small local (không cần key và không gửi filing ra ngoài), citation tất định (LLM có thể bịa id), `ground_numbers` (tránh EPS/revenue sai âm thầm), chunk theo Item (không trộn rủi ro với bảng), model ghim `kr/claude-sonnet-5.5` (`auto/*` lỗi rate limit).
+Xem bảng quyết định trong `docs/ARCHITECTURE.md` mục 6. Tóm tắt một câu cho mỗi lựa chọn: LangGraph có nhánh (dễ đánh giá hơn ReAct tự do), Chroma (lọc ticker ngay trong truy vấn; FAISS của LangChain có `filter=` nhưng chỉ lọc sau tìm kiếm ANN trên `fetch_k`, không có pre-filter gốc), bge-small local (không cần key và không gửi filing ra ngoài), citation tất định (LLM có thể bịa id), `ground_numbers` (tránh EPS/revenue sai âm thầm), chunk theo Item (không trộn rủi ro với bảng), model ghim `kr/claude-sonnet-5.5` (`auto/*` lỗi rate limit).
 
-### "What would fail" (cái gì sẽ hỏng)
+### "Điều gì có thể hỏng"
 
 | Tình huống | Điều xảy ra (theo code) | Đã có test/evidence? |
 |---|---|---|
 | Giá cũ hoặc yfinance lỗi | dùng cache với `stale=True` (`tools.py:83-85`); không cache thì `PriceUnavailable`, node ghi `error` và câu trả lời thêm ghi chú "price unavailable" (`graph.py:22-23`, `graph.py:75-76`) | `tests/test_price_tool.py`, `tests/test_graph_routing.py` |
 | LLM không gắn marker `[chunk_id]` | thử lại một lần, vẫn không có thì `INSUFFICIENT_TEXT` và `error = missing_citation` (`graph.py:95-99`) | `tests/test_citations.py` |
 | Parse Item sai (cross-reference "see Item 1A") | `_is_heading` loại tham chiếu trong văn xuôi (`ingest.py:33-43`); Item bị thiếu thì không có chunk cho Item đó | `tests/test_ingest.py`; NVDA Item 8 chỉ có 1 chunk vì financial statements nằm ở Item 15 |
-| Ngoài phạm vi (Tesla, thời tiết, dự đoán giá, Alphabet) | `refuse` (intent accuracy 30/30 trên 5 bẫy trong baseline) | `reports/ragas_baseline.md` |
+| Ngoài phạm vi (Tesla, thời tiết, dự đoán giá, Alphabet) | `refuse` (intent accuracy: 5/5 bẫy, 30/30 tổng trong baseline) | `reports/ragas_baseline.md` |
 | Classifier gán nhầm lời khuyên đầu tư thành `price` | không có chốt chặn thứ hai (không có keyword rule); đây là rủi ro đã biết | chỉ có integration smoke test cho câu "Should I buy NVIDIA stock now?" (`tests/test_llm_smoke.py:20`), không có test cho các cách hỏi khác |
-| Retrieval bỏ sót chunk bảng | model hedge thay vì bịa; số liệu null | baseline: 5/5 worst case, numeric sanity 7/10 |
+| Retrieval bỏ sót chunk bảng | thường model hedge và số liệu null (q05, q21, q24), nhưng không phải luôn luôn: q04 trả số đúng từ chunk khác, q10/q20 trả 139,297 sai (xem dòng sau) | baseline: 5/5 worst case, numeric sanity 7/10 |
+| Số sai nhưng "có trong chunk" (grounded-but-misread) | `ground_numbers` chỉ kiểm tra chuỗi số xuất hiện trong chunk đã retrieve, không kiểm tra nghĩa; bảng không có tiêu đề cột cho phép lấy nhầm số (q10, q20: 139,297 thay vì 215,938) | `reports/ragas_baseline.md` Caveats; ca Debug thứ hai. Chưa có kiểm tra ngữ nghĩa nào |
+| Câu hỏi tiếng Việt (không phải tiếng Anh) | embedding chỉ tiếng Anh nên câu gốc retrieve kém (câu rủi ro xuất khẩu NVIDIA: không có chunk Item 1A, distance 0.71-0.74 so với 0.27). Giảm thiểu: `search_query` tiếng Anh do classifier viết lại. Còn yếu với các câu về bảng Item 8 (ví dụ "Lợi nhuận ròng của Microsoft") | `tests/test_graph_routing.py` (fake), `tests/test_llm_smoke.py::test_graph_live_vietnamese_export_control_hits_item_1a` |
+| LLM viết `[A, B]` trong một cặp ngoặc | `MARKER_RE` chỉ nhận một chunk id mỗi cặp, nên không có citation hợp lệ, thử lại, rồi `INSUFFICIENT_TEXT` với `error = missing_citation` | chưa có test cho định dạng này |
 | Câu hỏi so sánh nhiều công ty | `retrieve` lấy top-5 cho mỗi ticker (`chains.py:119`), nhưng chunk đúng vẫn có thể thiếu (q24 recall 0.0 và precision 0.0) | `reports/ragas_baseline.md` |
 
-### "How did you verify" (bạn kiểm chứng bằng cách nào)
+### "Bạn đã kiểm chứng bằng cách nào"
 
-- `uv run pytest -q`: 135 passed, 11 skipped (11 integration test cần `RUN_INTEGRATION=1`; chạy với router bật thì 11 passed).
+- `uv run pytest -q`: 145 passed, 12 skipped (12 integration test cần `RUN_INTEGRATION=1`; chạy với router bật thì 12 passed).
 - RAGAS baseline: `reports/ragas_baseline.md` (25 câu đánh giá bằng RAGAS, 5 câu bẫy chấm bằng intent: 30/30), kèm Caveats (judge cùng model với app; relevancy 0.0 ở 6 dòng là artifact của RAGAS).
 - Ground truth do người viết tay từ 10-K, 30 câu (`eval/golden_set.json`).
 - Trace LangSmith: `docs/evidence/links.md` và `docs/evidence/trace_tree.md` (không có ảnh chụp màn hình vì UI cần đăng nhập; trace tree lấy qua API).

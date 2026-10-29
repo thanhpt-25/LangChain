@@ -35,15 +35,17 @@ FINASSIST_PRICE_OFFLINE=1 uv run finassist ask "..."   # price tool uses cache o
 ## Evaluation (RAGAS)
 
 ```bash
-uv run python -m eval.run_ragas     # about 14 minutes (814 s in the baseline run); writes reports/ragas_baseline.{json,md}
+uv run python -m eval.run_ragas     # about 14 minutes (814 s in the baseline run); OVERWRITES reports/ragas_baseline.{json,md} (copy the hand-annotated .md first)
 ```
 
 Baseline (copied from `reports/ragas_baseline.md`): faithfulness 0.939, context precision 0.309, context recall 0.387, answer relevancy 0.687; intent accuracy 30/30; numeric sanity 7/10. Read the "Caveats" section there before quoting these numbers (the judge model is the same model as the app).
 
+Known limits: the embedding model is English-only, so non-English questions are retrieved with an English `search_query` rewritten by the classifier (English questions are unchanged; table questions in Vietnamese can still miss); and `ground_numbers` checks that a figure appears in a retrieved chunk, not what it means (baseline q10/q20 report NVIDIA "total revenue $139,297" from a headerless segment table, true value 215,938). See `docs/ARCHITECTURE.md` section 7.
+
 ## Tests
 
 ```bash
-uv run pytest -q                                       # 135 passed, 11 skipped (integration tests skipped)
+uv run pytest -q                                       # 145 passed, 12 skipped (integration tests skipped)
 RUN_INTEGRATION=1 uv run pytest tests/test_llm_smoke.py -q   # needs the router up and a populated data/chroma
 ```
 

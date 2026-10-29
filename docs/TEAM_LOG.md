@@ -1,4 +1,4 @@
-# TEAM LOG
+# Nhật ký đóng góp
 
 ## Ai đã làm gì (nói thẳng)
 
@@ -25,20 +25,20 @@ Repo này có **một tác giả git duy nhất** (`thanh.pt`, 32 commit từ 20
 | 2026-10-29 | thanh.pt | Caveats trong báo cáo RAGAS | `be58788` |
 | 2026-10-29 | thanh.pt | Script và bằng chứng LangSmith trace | `b78d35b` (`docs/evidence/`) |
 
-Các tài liệu README, `docs/*.md` được thêm ở commit docs của Task 14 (xem `git log` sau commit `b78d35b`).
+Các tài liệu README, `docs/*.md` được thêm ở các commit tài liệu cuối nhánh, sau commit kiểm chứng (xem `git log` sau commit `b78d35b`).
 
-## Learned (điều đã học)
+## Bài học rút ra
 
-- Số liệu trong bảng tài chính bị retrieval bỏ sót nhiều nhất: ở baseline, 5 trong 5 case tệ nhất đều không retrieve được chunk golden (`reports/ragas_baseline.md`, "Common pattern"). Hệ thống an toàn ở chỗ hedge thay vì bịa, nhưng chưa đủ hữu ích.
+- Số liệu trong bảng tài chính bị retrieval bỏ sót nhiều nhất: ở baseline, 5 trong 5 case tệ nhất đều không retrieve được chunk golden (`reports/ragas_baseline.md`, "Common pattern"). Phần lớn các lần hụt dẫn tới hedge thay vì bịa, nhưng không phải tất cả: q10 và q20 trả một số sai (139,297 thay vì 215,938) lấy từ bảng không có tiêu đề cột, và số này vẫn qua `ground_numbers`. Hệ thống chưa đủ hữu ích và chưa đủ an toàn ở chỗ này.
 - Kiểm tra dữ liệu thật sớm có ích: NVDA đặt financial statements ở Item 15 và Item 8 chỉ là stub, nên phải thêm Item 15 (`676e1bf`); MSFT lặp running header "Item 8" nên phải gộp (`b24e307`).
 - Cho LLM sinh citation hoặc con số rồi tin ngay là rủi ro; chuyển phần đó sang mã tất định (`postprocess.py`) và test được.
 - Judge cùng model với app nên faithfulness 0.939 cần đọc cùng với Caveats.
 
-## Priority fix committed
+## Bản sửa ưu tiên đã được commit
 
 `a668069` "enforce valid citations, surface price failures, ground stock_price in tool data": sau review, một câu filing không có marker `[chunk_id]` hợp lệ giờ bị thử lại một lần rồi trả `INSUFFICIENT_TEXT` kèm `error = missing_citation` (`src/finassist/graph.py:95-99`), thay vì trả câu không có nguồn.
 
-## To fill by the team (không suy ra được từ repo)
+## Thông tin nhóm cần bổ sung (không thể suy ra từ repository)
 
 - Tên và vai trò của các thành viên khác trong nhóm, nếu có; thêm một dòng mỗi người vào bảng trên với commit/PR của họ.
 - Nếu nhóm làm việc theo cặp hoặc review chéo ngoài git, ghi lại ở đây kèm bằng chứng (link PR, ảnh chụp review, ghi chú họp).
